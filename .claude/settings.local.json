@@ -4,21 +4,8 @@
     "MAX_THINKING_TOKENS": "10000",
     "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
   },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/check-stage.ps1"
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
-    "allow": ["Bash(*)", "PowerShell(*)"],
+    "allow": ["Bash(*)", "PowerShell(*)", "WebSearch"],
     "deny": [
       "Bash(rm -rf *)",
       "Bash(rm -fr *)",
@@ -48,7 +35,19 @@
       "PowerShell(rm -rf *)",
       "PowerShell(Format-Volume *)",
       "PowerShell(Clear-Disk *)"
-    ],
-    "additionalDirectories": ["C:\\Users\\gnaaak\\AppData\\Local\\Temp"]
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/check-stage.ps1"
+          }
+        ]
+      }
+    ]
   }
 }
