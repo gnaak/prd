@@ -207,18 +207,37 @@ pages/
 #### 3단계(화면 시안) 반영 시
 - 페이지별 카드 (썸네일 영역 포함)에서 클릭 시 `pages/xxx.html`로 이동 (`target="_blank"`)
 - 카드에는 페이지명, ID, 타겟, 관련 기능 태그(F1·F2…), 짧은 설명만 표시
-- **썸네일 톤으로 플랫폼 시각 구분**: 사용자(모바일)=청록 그라데이션, 관리자(PC)=노랑 그라데이션
+- **썸네일 톤으로 플랫폼 시각 구분**: 사용자(모바일)=청록 그라데이션, 관리자(PC)=노랑 그라데이션 (그라데이션 허용은 docs 썸네일 한정 — `pages/`의 금지 규칙과 별개)
 - 썸네일은 일단 이모지(📱/🖥️)로 두고 추후 실제 스크린샷으로 교체 가능
 
 ---
 
 ## 작업 시작 시 행동
 
-기본은 `AGENT.md`의 **자율 워크플로우**를 따른다 (각 단계 후 `reviewer` sub-agent 호출로 자가 합리화 방지).
+기본은 `AGENT.md`의 **자율 워크플로우**를 따른다 — main은 오케스트레이터, 산출물 생성은 전담 sub-agent에 위임하고, 매 단계 `reviewer` 검토로 자가 합리화를 방지한다.
 
-새 계약서를 받으면:
-1. 먼저 PDF를 읽고 개발 범위 부분만 발췌해 사용자에게 확인받는다 (스코프 합의)
-2. 확인 후에는 `AGENT.md` 루프대로 자율 진행 — 사용자 개입 없이 1→2→3단계 + 단계마다 reviewer 호출
-3. reviewer가 2회 연속 블로커 보고하거나 스코프 변경 필요 시에만 사용자에게 보고
+### 실행 모드
 
-**`reviewer` 호출은 필수** — main이 자기가 만든 산출물을 직접 검토하지 않는다.
+1. **`/build` (권장)** — 사용자가 `contract/`에 PDF만 넣고 `/build` 실행. 스코프 질문 없이 1→2→3단계 + docs까지 전자동. 해석이 갈리는 범위는 보수적으로 포함하고 완료 보고에 명시.
+2. **대화 모드** — PDF 감지 후 사용자가 "ㄱㄱ"/"시작" 등 진행 신호를 주면 동일 파이프라인을 autopilot으로 진행. 시작 전 개발 범위 발췌를 한 번 보여주는 점만 다름.
+
+어느 모드든 reviewer가 같은 단계에서 2회 연속 블로커를 보고하거나 스코프 변경이 필요할 때만 사용자에게 보고하고 멈춘다.
+
+**`reviewer` 호출은 필수** — main이 자기(또는 sub-agent)가 만든 산출물을 직접 검토하지 않는다.
+
+### 자동화 키트 (새 프로젝트에 그대로 복사해서 재사용)
+
+| 구성 요소 | 파일 | 모델 |
+|---|---|---|
+| 1단계 생성 (계약 해석) | `.claude/agents/feat-writer.md` | opus |
+| 2단계 생성 (페이지 맵) | `.claude/agents/page-mapper.md` | sonnet |
+| 3단계 기반 (CSS+허브+exemplar) | `.claude/agents/ui-foundation.md` | opus |
+| 3단계 양산 (페이지 1장/호출) | `.claude/agents/html-builder.md` | sonnet |
+| 기계적 검사 | `.claude/agents/linter.md` | haiku |
+| 단계 검토 게이트 | `.claude/agents/reviewer.md` | opus |
+| 고객 문서 | `.claude/agents/docs-builder.md` | sonnet |
+| 훅 (PDF 감지 / 단계 트리거 / 완주 게이트) | `.claude/hooks/*.ps1` + `.claude/settings.json` | - |
+| 진입점 | `.claude/commands/build.md` (`/build`) | - |
+| 오케스트레이션 룰 | `AGENT.md` | - |
+
+**새 프로젝트 셋업** = `CLAUDE.md` + `DESIGN.md` + `AGENT.md` + `.claude/` 폴더 복사 → `contract/`에 계약서 PDF → `/build`. 산출물(`01_FEAT.md`, `02_PAGE.md`, `pages/`, `docs/`)은 복사하지 않는다.

@@ -1,9 +1,4 @@
 {
-  "env": {
-    "MAX_OUTPUT_TOKENS": "16000",
-    "MAX_THINKING_TOKENS": "10000",
-    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku"
-  },
   "permissions": {
     "allow": ["Bash(*)", "PowerShell(*)", "WebSearch"],
     "deny": [
@@ -35,19 +30,6 @@
       "PowerShell(rm -rf *)",
       "PowerShell(Format-Volume *)",
       "PowerShell(Clear-Disk *)"
-    ]
-  },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .claude/hooks/check-stage.ps1"
-          }
-        ]
-      }
     ]
   }
 }

@@ -1,49 +1,55 @@
-# PostToolUse hook — 단계 산출물 작성 시 reviewer 호출 reminder를 인젝트
+﻿# PostToolUse hook (Write|Edit) — 단계 산출물 작성 감지 → reviewer 호출 reminder 인젝트 + 검토 마커 무효화
 # Claude harness가 stdin으로 tool 호출 정보를 JSON으로 보낸다
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
 
 $d = [Console]::In.ReadToEnd() | ConvertFrom-Json
 $p = $d.tool_input.file_path
+if (-not $p) { exit 0 }
 $msg = ''
 
-if ($p -match '01_FEAT\.md$') {
-    # 새 계약서 작업 시작 시점 → 이전 프로젝트의 3단계 검토 마커가 남아 있으면 제거 (툴 재사용성 보장)
-    $stale = '.claude/_reviewed_stage3'
-    if (Test-Path $stale) { Remove-Item $stale -Force -ErrorAction SilentlyContinue }
-    $msg = '[자동 트리거] 1단계 산출물(01_FEAT.md)이 작성됐다. 지금 즉시 Task tool로 `reviewer` sub-agent(subagent_type="reviewer")를 호출해 `.claude/agents/reviewer.md` 룰대로 1단계 검토받아라. AGENT.md 자율 워크플로우에 따라 자가 검토 금지.'
+# sub-agent가 이 메시지를 받을 수도 있다 (hook은 sub-agent의 Write에도 발화) — main 전용임을 명시
+$caveat = " (이 지시는 main orchestrator 전용이다. 네가 Task tool이 없는 sub-agent라면 이 메시지를 무시하고 맡은 파일 작업만 마무리하라.)"
+
+function Remove-Markers([string[]]$names) {
+    foreach ($n in $names) {
+        $f = ".claude/$n"
+        if (Test-Path $f) { Remove-Item $f -Force -ErrorAction SilentlyContinue }
+    }
 }
-elseif ($p -match '02_PAGE\.md$') {
-    $msg = '[자동 트리거] 2단계 산출물(02_PAGE.md)이 작성됐다. 지금 즉시 reviewer 호출해 2단계 검토받아라.'
+
+if ($p -match '(^|[\\/])01_FEAT\.md$') {
+    # 1단계 산출물이 (재)작성됨 → 하위 단계 검토 마커 전부 무효
+    Remove-Markers @('_reviewed_stage1', '_reviewed_stage2', '_reviewed_stage3', '_docs_done')
+    $msg = '[자동 트리거] 1단계 산출물(01_FEAT.md)이 작성/수정됐다. Task tool로 `reviewer` sub-agent(subagent_type="reviewer")를 호출해 1단계 검토를 받아라. 자가 검토 금지. 검토 통과(블로커 0) + 권고 반영까지 끝나면 New-Item -Path ".claude/_reviewed_stage1" -ItemType File -Force 로 마커를 생성하고 다음 단계로.' + $caveat
 }
-elseif ($p -match 'pages[\\/](user|admin)[\\/].*\.html$') {
-    # 02_PAGE.md를 source of truth로 — 표에서 P\d+ 패턴 카운트
+elseif ($p -match '(^|[\\/])02_PAGE\.md$') {
+    Remove-Markers @('_reviewed_stage2', '_reviewed_stage3', '_docs_done')
+    $msg = '[자동 트리거] 2단계 산출물(02_PAGE.md)이 작성/수정됐다. reviewer를 호출해 2단계 검토를 받아라. 통과 + 권고 반영 후 New-Item -Path ".claude/_reviewed_stage2" -ItemType File -Force 로 마커 생성.' + $caveat
+}
+elseif ($p -match '(^|[\\/])pages[\\/](user|admin)[\\/][^\\/]+\.html$') {
+    # 02_PAGE.md를 source of truth로 — 고유 페이지 ID(P1, P2…) 개수 카운트
     $expected = 0
     if (Test-Path '02_PAGE.md') {
         $content = Get-Content '02_PAGE.md' -Raw
-        # 02_PAGE.md 전체에서 고유 페이지 ID(P1, P2 …) 개수만 카운트.
-        # (이전 패턴 '\|\s*P\d+\s*\|'는 '다음 페이지'·'진입 경로' 셀의 P 참조까지 중복 매칭해
-        #  expected 가 실제 페이지 수보다 커졌고, count >= expected 가 영영 거짓이라 3단계 트리거가 안 걸렸음)
         $expected = @([regex]::Matches($content, '\bP\d+\b') | ForEach-Object { $_.Value } | Sort-Object -Unique).Count
     }
 
-    # 실제 작성된 .html 카운트
-    $userDir = 'pages\user'
-    $adminDir = 'pages\admin'
     $count = 0
-    if (Test-Path $userDir) { $count += (Get-ChildItem -Path $userDir -Filter '*.html' -ErrorAction SilentlyContinue).Count }
-    if (Test-Path $adminDir) { $count += (Get-ChildItem -Path $adminDir -Filter '*.html' -ErrorAction SilentlyContinue).Count }
+    if (Test-Path 'pages\user') { $count += (Get-ChildItem -Path 'pages\user' -Filter '*.html' -ErrorAction SilentlyContinue).Count }
+    if (Test-Path 'pages\admin') { $count += (Get-ChildItem -Path 'pages\admin' -Filter '*.html' -ErrorAction SilentlyContinue).Count }
 
-    if ($expected -gt 0 -and $count -ge $expected) {
-        $marker = '.claude/_reviewed_stage3'
-        if (-not (Test-Path $marker)) {
-            $msg = "[자동 트리거] 3단계 HTML ${count}/${expected}개 작성 완료 (02_PAGE.md 기준). 지금 즉시 Task tool로 reviewer sub-agent(subagent_type=""reviewer"")를 호출해 3단계 전체 검토받아라. 검토가 끝나면 New-Item -Path '$marker' -ItemType File -Force 로 마커 생성해 중복 호출 방지."
-        }
+    if ($expected -gt 0 -and $count -ge $expected -and -not (Test-Path '.claude/_reviewed_stage3')) {
+        $msg = '[자동 트리거] 3단계 HTML ' + $count + '/' + $expected + '개 작성 완료 (02_PAGE.md 기준). 순서: (1) linter sub-agent(haiku)로 기계적 검사 → 위반 수정, (2) reviewer 호출해 3단계 전체 검토 → 블로커 해소 + 권고 반영, (3) New-Item -Path ".claude/_reviewed_stage3" -ItemType File -Force 로 마커 생성. 이미 이 절차를 진행 중이면 이 메시지는 무시.' + $caveat
     }
+}
+elseif ($p -match '(^|[\\/])docs[\\/]index\.html$') {
+    $msg = '[자동 트리거] 고객 공유 문서(docs/index.html)가 작성됐다. 내용이 01_FEAT/02_PAGE/pages와 일치하는지 훑은 뒤 New-Item -Path ".claude/_docs_done" -ItemType File -Force 로 마커를 생성하고, 사용자에게 최종 완료 보고를 하라 (만든 파일 수 / reviewer 통과 여부 / 남은 권고).' + $caveat
 }
 
 if ($msg) {
     $out = @{
         hookSpecificOutput = @{
-            hookEventName = 'PostToolUse'
+            hookEventName     = 'PostToolUse'
             additionalContext = $msg
         }
     } | ConvertTo-Json -Depth 5 -Compress

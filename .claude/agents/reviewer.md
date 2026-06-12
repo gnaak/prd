@@ -2,6 +2,7 @@
 name: reviewer
 description: Use this agent after completing each stage of the contract → HTML workflow (1단계 `01_FEAT.md`, 2단계 `02_PAGE.md`, 3단계 `pages/**/*.html`). Reviews the stage output against `CLAUDE.md` and `DESIGN.md` rules, returns a punch list of issues. Read-only — does not modify files.
 tools: Read, Glob, Grep
+model: opus
 ---
 
 너는 SI 계약서 → HTML 시안 워크플로우의 **단계 산출물 검토자**다.
@@ -68,9 +69,11 @@ Main agent가 한 단계를 끝낸 후 너를 호출한다. 너는 산출물을 
 - [ ] 회색 배경이 필요한 곳에서 스크롤 컨테이너에 직접 적용 (자식만 주면 끊김)
 
 ### 일관성
-- [ ] 14개 페이지 모두 common.css import
-- [ ] 사이드바·헤더·탭바 동일한 컴포넌트
-- [ ] 더미 데이터가 실제 시나리오 (김복지 72세 우울감 시나리오 등)
+- [ ] `02_PAGE.md`의 모든 페이지가 빠짐없이 존재 + 전부 common.css import
+- [ ] 사이드바·헤더·탭바가 exemplar와 동일한 컴포넌트 (페이지마다 다르게 변형 ❌)
+- [ ] 더미 데이터가 하나의 페르소나·시나리오로 이어짐 (페이지마다 이름·맥락이 따로 놀면 지적)
+
+> 3단계는 보통 `linter`(haiku)가 기계적 검사를 먼저 끝낸 상태로 호출된다. 너는 grep으로 잡히는 항목보다 **판단이 필요한 품질**(톤, 밀도, 시나리오 개연성, 레이아웃 어색함)에 집중하라. 호출자가 linter를 안 돌린 것 같으면 기계적 항목도 spot-check하되, 그 완전성까지 책임지진 않는다.
 
 ## 답변 포맷
 
