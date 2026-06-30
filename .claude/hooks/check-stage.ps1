@@ -23,6 +23,13 @@ function Remove-Markers([string[]]$names) {
     }
 }
 
+# 빈 <html></html> 스텁이나 common.css 미import 페이지는 미완성으로 본다 (Stop hook과 동일 기준)
+function Test-PageComplete([string]$path) {
+    if (-not (Test-Path $path)) { return $false }
+    if ((Get-Item $path).Length -lt 400) { return $false }
+    return ((Get-Content $path -Raw) -match 'assets/css/common\.css')
+}
+
 # 쓰여진 경로에서 고객사 base(html/clients/{slug}) 추출
 $base = ''
 if ($p -match 'html[\\/]clients[\\/]([^\\/]+)') { $base = "html/clients/$($Matches[1])" }
@@ -43,19 +50,17 @@ elseif ($p -match '(^|[\\/])pages[\\/](user|admin)[\\/][^\\/]+\.html$') {
         $msg = '[자동 트리거] 3단계 검토(_reviewed_stage3) 이후 페이지(' + (Split-Path $p -Leaf) + ')가 수정됐다. 그 검토는 무효화됐다. (1) linter로 다시 기계검사 → 위반 수정, (2) reviewer로 재검토 → 반영, (3) New-Item -Path ".claude/_reviewed_stage3" -ItemType File -Force 로 마커 재생성.' + $caveat
     }
     else {
-        # 양산 단계: 02_PAGE.md를 source of truth로 — "페이지 목록" 표 행(셀 첫 칸이 P#)만 카운트
-        $expected = 0
+        # 양산 단계: 02_PAGE.md '파일' 컬럼을 source of truth로 — 기대 파일이 전부 "완성"됐을 때만 검토 안내
+        $expectedFiles = @()
         if ($base -and (Test-Path "$base/02_PAGE.md")) {
             $content = Get-Content "$base/02_PAGE.md" -Raw
-            $expected = @([regex]::Matches($content, '(?m)^\s*\|\s*(P\d+)\b') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique).Count
+            $expectedFiles = @([regex]::Matches($content, '(user|admin)/[A-Za-z0-9_\-]+\.html') | ForEach-Object { $_.Value } | Sort-Object -Unique)
         }
+        $expected = $expectedFiles.Count
+        $incomplete = @($expectedFiles | Where-Object { -not (Test-PageComplete "$base/pages/$_") })
 
-        $count = 0
-        if ($base -and (Test-Path "$base/pages/user")) { $count += (Get-ChildItem -Path "$base/pages/user" -Filter '*.html' -ErrorAction SilentlyContinue).Count }
-        if ($base -and (Test-Path "$base/pages/admin")) { $count += (Get-ChildItem -Path "$base/pages/admin" -Filter '*.html' -ErrorAction SilentlyContinue).Count }
-
-        if ($expected -gt 0 -and $count -ge $expected) {
-            $msg = '[자동 트리거] 3단계 HTML ' + $count + '/' + $expected + '개 작성 완료 (02_PAGE.md 표 기준). 순서: (1) linter sub-agent(haiku)로 기계적 검사 → 위반 수정, (2) reviewer 호출해 3단계 전체 검토 → 블로커 해소 + 권고 반영, (3) New-Item -Path ".claude/_reviewed_stage3" -ItemType File -Force 로 마커 생성. 이미 이 절차를 진행 중이면 이 메시지는 무시.' + $caveat
+        if ($expected -gt 0 -and $incomplete.Count -eq 0) {
+            $msg = '[자동 트리거] 3단계 HTML ' + $expected + '개 전부 완성 (빈 스텁 없음, common.css import 확인 — 02_PAGE.md 파일 컬럼 기준). 순서: (1) linter sub-agent(haiku)로 기계적 검사 → 위반 수정, (2) reviewer 호출해 3단계 전체 검토 → 블로커 해소 + 권고 반영, (3) New-Item -Path ".claude/_reviewed_stage3" -ItemType File -Force 로 마커 생성. 이미 이 절차를 진행 중이면 이 메시지는 무시.' + $caveat
         }
     }
 }

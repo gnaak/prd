@@ -16,7 +16,7 @@ model: sonnet
 
 ## 작업 절차
 
-1. `02_PAGE.md`에서 담당 P# 행을 읽는다 — 포함 기능 / 진입 경로 / 다음 페이지
+1. `02_PAGE.md`에서 담당 P# 행을 읽는다 — **파일** / 포함 기능 / 진입 경로 / 다음 페이지. 네 출력 경로는 그 행의 `파일` 칸과 정확히 일치해야 한다 (프롬프트 경로 = 파일 칸)
 2. `01_FEAT.md`에서 포함 기능(F#)의 행 + 핵심 동작 섹션을 읽는다
 3. **exemplar 페이지 전체를 읽는다** — 헤더/탭바/사이드바 크롬, `<head>` 구성, 하단 `<script>` 패턴을 그대로 가져온다
 4. `pages/assets/css/common.css`에서 쓸 수 있는 클래스를 확인한다 — **새 스타일 발명 전에 기존 클래스 우선**
@@ -30,7 +30,7 @@ model: sonnet
 - 사용자 페이지 = `.mobile-stage` > `.mobile-frame`(360×720) 구조, 내부 스크롤은 `.m-content`만 / 관리자 페이지 = PC 폭 + 사이드바
 - 밀도: body 14px, 버튼 padding 8~10×16~18 — 거대 UI 금지
 - **죽은 버튼 금지**: 모든 버튼·탭·칩·리스트 항목이 다음 중 하나를 가짐
-  - 페이지 이동: `02_PAGE.md`의 "다음 페이지"로 실제 링크 (`location.href` / `<a href>`) — 02_PAGE.md의 URL을 실제 파일 상대경로로 변환 (예: `/notifications` → 같은 폴더면 `notifications.html`, user↔admin을 건너면 `../admin/xxx.html`)
+  - 페이지 이동: `02_PAGE.md`의 "다음 페이지" P#로 실제 링크 (`location.href` / `<a href>`) — **링크 대상은 그 P#의 `파일` 칸 값으로 만든다** (URL을 추측 변환하지 말 것). 같은 타겟이면 같은 폴더(`xxx.html`), user↔admin을 건너면 `../admin/xxx.html` / `../user/xxx.html`
   - 상태 토글: `active` 클래스 토글
   - 시각 피드백: 텍스트 변경 / 색 반전 / disabled 처리
   - 자동 동작: 스플래시류는 1.8초 후 자동 이동

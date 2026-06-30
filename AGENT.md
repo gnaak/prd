@@ -60,9 +60,9 @@ New-Item -Path ".claude/_autopilot" -ItemType File -Force | Out-Null; Remove-Ite
 > 한 번에 한 고객사씩 빌드한다 (마커는 빌드 단위로 리셋되므로 충돌 없음). 산출물이 다시 수정되면 PostToolUse hook이 **그 단계를 포함한 이후 단계의 검토 마커를 전부 제거**한다:
 > - `01_FEAT.md` 수정 → `_reviewed_stage1/2/3` + `_docs_done` 제거
 > - `02_PAGE.md` 수정 → `_reviewed_stage2/3` + `_docs_done` 제거
-> - `pages/**/*.html` 수정 → (3단계 검토가 끝난 뒤일 때만) `_reviewed_stage3` + `_docs_done` 제거. 양산 중(검토 전)엔 마커가 없으므로 무효화 없이 페이지 카운트만 본다
+> - `pages/**/*.html` 수정 → (3단계 검토가 끝난 뒤일 때만) `_reviewed_stage3` + `_docs_done` 제거. 양산 중(검토 전)엔 마커가 없으므로 무효화 없이 `02_PAGE.md`의 `파일` 컬럼 기준으로 **각 기대 파일이 완성됐는지(빈 스텁 아님 + common.css import)**를 본다
 >
-> 진행을 **강제하는 백본은 Stop hook**(`autopilot-gate.ps1`)이다 — 매 턴 끝에 디스크 상태에서 다음 단계를 재계산한다. PostToolUse hook은 편의 트리거일 뿐이라, sub-agent의 Write가 그것을 발화시키지 않아도(예: 3단계 완료 자동감지 누락) Stop hook이 같은 판정을 다시 내려 커버한다.
+> 진행을 **강제하는 백본은 Stop hook**(`autopilot-gate.ps1`)이다 — 매 턴 끝에 디스크 상태에서 다음 단계를 재계산한다. 핵심: 완료 판정은 **파일 개수가 아니라 내용**으로 한다 — 기대 파일 집합(02_PAGE.md `파일` 컬럼)의 모든 파일이 비어있지 않고 `common.css`를 import해야 3단계를 넘어간다. 빈 `<html></html>` 스텁이나 고아 파일이 게이트를 통과하지 못한다. PostToolUse hook은 편의 트리거일 뿐이라, sub-agent의 Write가 그것을 발화시키지 않아도 Stop hook이 같은 판정을 다시 내려 커버한다.
 
 ---
 
@@ -132,7 +132,8 @@ Task(subagent_type="page-mapper", prompt="$base/01_FEAT.md 기반으로 2단계 
 ### 3단계: HTML 시안
 
 1. **기반 먼저** — `Task(subagent_type="ui-foundation", prompt="3단계 기반 작업. $base/pages/assets/css/common.css + $base/pages/index.html 허브 + exemplar 사용자 1장(홈) + 관리자 1장(대시보드).")`
-2. ui-foundation이 반환한 exemplar 경로·컴포넌트 카탈로그를 받아, **남은 페이지를 html-builder로 병렬 fan-out** — 한 메시지에 Task 4~6개씩, 페이지당 1호출:
+   - **ui-foundation 반환 직후 4개 파일을 검증한다** (fan-out 전 필수): common.css·index.html·exemplar 2장이 각각 빈 `<html></html>` 스텁이 아닌지 PowerShell로 확인 — `Get-ChildItem "$base/pages" -Recurse -Filter *.html | ForEach-Object { "$($_.FullName.Substring($pwd.Path.Length)) = $($_.Length)B" }` 로 바이트 수를 보고, 400B 미만이거나 비어 있으면 ui-foundation을 다시 호출해 그 파일을 채운 뒤 진행한다. exemplar가 비면 이후 모든 페이지의 기준이 무너진다.
+2. ui-foundation이 반환한 exemplar 경로·컴포넌트 카탈로그를 받아, **남은 페이지를 html-builder로 병렬 fan-out** — 한 메시지에 Task 4~6개씩, 페이지당 1호출 (각 페이지 출력 경로는 `02_PAGE.md`의 `파일` 칸 그대로):
    ```
    Task(subagent_type="html-builder",
         prompt="P7 알림 ($base/pages/user/notifications.html) 제작.

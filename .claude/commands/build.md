@@ -25,11 +25,11 @@ $slug = (Get-Content ".claude/_current_client" -Raw).Trim(); $base = "html/clien
 New-Item -Path ".claude/_autopilot" -ItemType File -Force | Out-Null
 Remove-Item -Path ".claude/_reviewed_stage1",".claude/_reviewed_stage2",".claude/_reviewed_stage3",".claude/_docs_done",".claude/_autopilot_count",".claude/_autopilot_stage" -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "$base/01_FEAT.md","$base/02_PAGE.md" -Force -ErrorAction SilentlyContinue
-Remove-Item -Path "$base/pages/user","$base/pages/admin" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$base/pages/user","$base/pages/admin","$base/pages/index.html" -Recurse -Force -ErrorAction SilentlyContinue
 ```
 
 - `_autopilot` 마커가 있는 동안 Stop hook이 파이프라인 완료 전 턴 종료를 차단한다.
-- 이전 빌드의 검토 마커와 **해당 고객사의 단계 산출물(01_FEAT/02_PAGE/pages의 사용자·관리자 페이지)을 리셋**한다 — 이전 페이지가 남아 있으면 훅의 페이지 카운트 게이트가 오판한다. `client.json`·`common.css`·`docs/index.html`은 새로 작성되거나 유지되므로 지우지 않는다.
+- 이전 빌드의 검토 마커와 **해당 고객사의 단계 산출물(01_FEAT/02_PAGE/pages의 사용자·관리자 페이지 + 허브 index.html)을 리셋**한다 — 이전 페이지가 남아 있으면 훅의 게이트가 오판한다. 특히 **exemplar(user/admin 페이지)와 허브를 같이 지워야** Stop hook의 foundation 판정(`hasFoundation`)이 false로 떨어져 ui-foundation이 다시 돈다. `client.json`·`common.css`·`docs/index.html`은 새로 작성되거나 유지되므로 지우지 않는다 (common.css는 ui-foundation이 갱신).
 - `/build`는 항상 처음부터 다시 실행이다. 중단된 파이프라인을 이어가려면 `/build` 대신 채팅으로 진행 신호만 주면 된다 (Stop hook이 `_current_client`로 남은 단계를 안다).
 
 ## 2. 파이프라인 (AGENT.md 절차 그대로 — 모든 경로는 `$base = html/clients/{slug}`)
