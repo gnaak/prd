@@ -1,0 +1,236 @@
+================================================================================
+ 동작방식 — 계약서 PDF → HTML 화면정의 파이프라인 (흐름도)
+================================================================================
+ 작성일: 2026-06-30
+ 대상: 이 repo의 .claude/ 자동화 키트 + AGENT.md / CLAUDE.md / DESIGN.md
+--------------------------------------------------------------------------------
+
+
+[0] 전체 한 장 요약
+================================================================================
+
+  사용자가 PDF를 html/_inbox/ 에 넣는다
+        │
+        │  ( /build  또는  "ㄱㄱ/시작/go" )
+        ▼
+  ┌──────────────────────────────────────────────────────────────┐
+  │  main(오케스트레이터) 가 단계별로 전담 sub-agent에게 위임      │
+  │  각 단계 끝 → reviewer(검토) → 통과 시 main이 마커파일 생성    │
+  └──────────────────────────────────────────────────────────────┘
+        │
+        ▼
+  html/clients/{slug}/ 안에 산출물이 쌓인다
+   ├─ client.json        (0단계)
+   ├─ 01_FEAT.md         (1단계)
+   ├─ 02_PAGE.md         (2단계)
+   ├─ pages/**/*.html    (3단계)
+   └─ docs/index.html    (마무리, 고객 공유 문서)
+
+
+[1] 두 개의 엔진: "마커 상태기계" + "3개의 훅"
+================================================================================
+
+  이 시스템은 사람이 단계를 일일이 지시하지 않아도 끝까지 굴러간다.
+  비결은 (A) 마커 파일로 진행상태를 디스크에 기록하고,
+         (B) 훅이 매 턴 그 상태를 읽어 "다음에 뭘 할지"를 main에게 주입하는 것.
+
+  ── 마커 파일 (.claude/ 아래, 전부 빈 파일 = 존재 여부만 의미) ──────────────
+
+    _current_client      지금 빌드 중인 고객사 slug  (경로 계산 기준)
+    _autopilot           파이프라인 진행 중 플래그   (있으면 Stop이 종료 차단)
+    _reviewed_stage1     1단계 검토 통과 + 반영 완료
+    _reviewed_stage2     2단계 검토 통과 + 반영 완료
+    _reviewed_stage3     3단계 lint+검토 통과 + 반영 완료
+    _docs_done           docs/index.html 완료
+    _autopilot_count     같은 단계에서 진전 없이 막힌 "연속" 횟수 (상한 12 → 무한루프 방지)
+    _autopilot_stage     Stop 훅이 마지막으로 지시한 단계 태그 (진전 감지용, ascii)
+
+    ※ 마커는 항상 main이 만든다. 단, _autopilot_count·_autopilot_stage 는 Stop 훅이 관리한다.
+
+  ── 3개의 훅 (.claude/settings.json 에 등록) ───────────────────────────────
+
+    UserPromptSubmit → detect-contract.ps1   "할 일이 있다"고 매 입력마다 알림
+    PostToolUse      → check-stage.ps1        파일이 쓰이면 "검토해라" 주입 +
+       (Write|Edit)                            상위 산출물 수정 시 하위 마커 무효화
+    Stop             → autopilot-gate.ps1     턴이 끝나려 하면 미완료면 종료 차단 +
+                                               "다음 단계 실행하라" 주입
+
+
+[2] 메인 루프 (수직 흐름 — 위에서 아래로)
+================================================================================
+
+  사용자: html/_inbox/ 에 계약서.pdf 투입
+   │
+   ▼
+ ┌────────────────────────────────────────────────────────────────────────┐
+ │ UserPromptSubmit 훅 (detect-contract.ps1)                                │
+ │  _inbox에 PDF 감지 → "진행신호 주면 /build 절차 시작하라" 컨텍스트 주입  │
+ └────────────────────────────────────────────────────────────────────────┘
+   │   사용자가 /build 또는 "시작"
+   ▼
+ ┌── /build 진입점 (commands/build.md) ─────────────────────────────────────┐
+ │  0. 대상 고객사 확정                                                       │
+ │     A. /build {slug}  → 기존 고객사 재빌드 (client-init 생략)             │
+ │     B. /build (인자없음) → client-init 호출해 _inbox PDF 식별             │
+ │  1. 준비: _autopilot 마커 생성 + 이전 검토마커/단계산출물 리셋            │
+ └──────────────────────────────────────────────────────────────────────────┘
+   │
+   ▼
+ ╔══════════════════════════════════════════════════════════════════════════╗
+ ║  여기서부터 매 턴 끝마다 Stop 훅이 "다음 단계"를 강제 주입한다.            ║
+ ║  main은 한 번에 한 단계씩 처리하고 턴을 끝낸다 → Stop이 다시 깨운다.       ║
+ ╚══════════════════════════════════════════════════════════════════════════╝
+   │
+   ▼
+ [0단계] Task(client-init, sonnet)
+   │   └─ _inbox PDF 표지/갑·을/사업명만 읽어 slug 결정 + client.json 작성
+   │   main: PDF를 $base/contract/ 로 이동 + _current_client 에 slug 기록
+   ▼
+ [1단계] Task(feat-writer, opus)
+   │   └─ contract PDF 끝까지 읽고 기능을 동작단위로 분해 → 01_FEAT.md
+   │
+   │   ┌─ PostToolUse 훅: "01_FEAT.md 쓰임 → reviewer 호출하라" 주입,
+   │   │                  _reviewed_stage1/2/3 + _docs_done 마커 제거
+   ▼   ▼
+   Task(reviewer, opus) ── 검토 ──┐
+   │                              │
+   │  ✅Pass + ⚠️권고만 ──────────┤→ main이 권고 반영 → _reviewed_stage1 생성
+   │  ❌블로커 ───────────────────┤→ 소규모면 main 수정 / 구조적이면
+   │                              │   feat-writer 재호출 (재검토 최대 2회)
+   │  2회 연속 블로커 ────────────┘→ 사용자 보고 + _autopilot 제거 후 중단 ⏹
+   ▼
+ [2단계] Task(page-mapper, sonnet)
+   │   └─ 01_FEAT.md 기능을 화면 단위로 묶음 → 02_PAGE.md (표 + 트리)
+   │   PostToolUse: "reviewer 호출" 주입 + _reviewed_stage2/3 + _docs_done 제거
+   ▼
+   Task(reviewer, opus) → 반영 → _reviewed_stage2 생성
+   │
+   ▼
+ [3단계-기반] Task(ui-foundation, opus)   ── 정확히 4개 파일 ──
+   │   ├─ pages/assets/css/common.css   (DESIGN.md 토큰 → CSS 변수 + 버튼 5종)
+   │   ├─ pages/index.html              (모든 페이지로 가는 허브)
+   │   ├─ pages/user/{exemplar}.html    (사용자 기준 페이지 = 홈)
+   │   └─ pages/admin/{exemplar}.html   (관리자 기준 페이지 = 대시보드)
+   ▼
+ [3단계-양산] Task(html-builder, sonnet) × N   ── 호출당 1페이지, 병렬 fan-out ──
+   │   ┌─────────────┬─────────────┬─────────────┐
+   │   ▼             ▼             ▼             ▼   (한 메시지에 4~6개 동시)
+   │ P5 chat      P6 info       P8 알림       ...    각자 exemplar 복제 후
+   │ .html        .html         .html                해당 P#/F# 내용 채움
+   │   └─────────────┴─────────────┴─────────────┘
+   │
+   │   ← Stop 훅이 매 턴 "현재 count/expected 개. 남은 페이지 만들어라" 로
+   │     02_PAGE.md의 고유 P# 수(expected)에 도달할 때까지 계속 깨움
+   ▼
+ [3단계-검사] Task(linter, haiku)   ── grep 기반 기계검사, read-only ──
+   │   └─ import 누락 / 그라데이션·이모지 / href="#" / 깨진링크 등 file:line 보고
+   │   main: 위반 항목 직접 수정
+   ▼
+ [3단계-검토] Task(reviewer, opus)  ── 판단형 품질 (톤·밀도·시나리오) ──
+   │   └─ 반영 → _reviewed_stage3 생성
+   ▼
+ [마무리] Task(docs-builder, sonnet)
+   │   └─ 01_FEAT + 02_PAGE + pages/ 를 하나의 비즈니스 문서로 → docs/index.html
+   │   PostToolUse: "client.json status=delivered 로 바꾸고 _docs_done 만들고
+   │                 최종보고 하라" 주입
+   ▼
+   main: client.json status → "delivered", _docs_done 마커 생성
+   ▼
+ [최종 완료 보고]  고객사/slug · 기능·페이지·파일 수 · reviewer 통과 · 해석포인트
+   │
+   ▼
+ ┌── Stop 훅 (autopilot-gate.ps1) ──────────────────────────────────────────┐
+ │  모든 마커 충족 확인 → _autopilot 과 _autopilot_count 제거 → 종료 허용 ✅ │
+ └──────────────────────────────────────────────────────────────────────────┘
+
+
+[3] Stop 훅 판정 트리 (autopilot-gate.ps1 의 실제 분기)
+================================================================================
+
+  매 턴 종료 시 실행. _autopilot 없으면 즉시 통과(exit 0).
+
+   _autopilot 존재?
+    └─ 아니오 → 종료 허용 (파이프라인 아님)
+    └─ 예
+        │
+        └─ 앞 단계부터 "비어있는 첫 단계"를 찾아 단계태그(stage)와 지시(next)를 정한다:
+           │
+           ├─ slug 없음 / $base 폴더 없음    → stage0   "0단계 client-init 하라"
+           ├─ 01_FEAT.md 없음               → feat     "1단계 feat-writer 하라"
+           ├─ _reviewed_stage1 없음         → review1  "1단계 reviewer 검토 → 마커 생성"
+           ├─ 02_PAGE.md 없음               → page     "2단계 page-mapper 하라"
+           ├─ _reviewed_stage2 없음         → review2  "2단계 reviewer 검토 → 마커 생성"
+           ├─ common.css+index.html 없음    → foundation "3단계 ui-foundation 하라"
+           ├─ 페이지 count < expected       → build-{count}-of-{expected}
+           │                                   "남은 페이지 html-builder 로 만들어라 (P#=파일 1:1)"
+           ├─ _reviewed_stage3 없음         → review3  "linter → reviewer → 마커 생성"
+           ├─ _docs_done 없음               → docs     "docs-builder → status=delivered → 마커"
+           └─ 전부 충족                     → _autopilot/_count/_stage 제거 + 종료 허용 ✅
+        │
+        └─ 진행도 기반 스톨 카운터 (전부 충족이 아닌 경우):
+              stage == 직전 stage ?  예 → _autopilot_count += 1   (진전 없음 = 스톨)
+                                     아니오 → _autopilot_count = 1 (진전 발생 = 리셋)
+              _autopilot_count >= 12 ? → _autopilot/_count/_stage 강제 제거 + 종료 허용 ⚠️(안전밸브)
+              아니면 → JSON {decision:"block", reason:"...다음 단계 → <지시>..."} 출력
+                       = 턴 종료를 막고 main을 다시 깨워 그 지시를 수행시킴.
+
+   ※ 핵심: 양산처럼 매 턴 파일이 늘면 stage 태그(build-N-of-M)가 바뀌어 카운터가 0으로
+     리셋된다 → 페이지가 아무리 많아도 정상 진행이면 안전밸브에 안 걸린다. 같은 단계에서
+     12턴 연속 진전이 없을 때만(reviewer 무한 블로커, 스코프 교착 등) 강제 해제된다.
+
+
+[4] PostToolUse 훅 마커 무효화 규칙 (check-stage.ps1)
+================================================================================
+
+  쓰여진 파일 경로(file_path)로 판정. 상위 산출물이 바뀌면 하위 검토를 무효화.
+
+   01_FEAT.md  수정 → 제거: _reviewed_stage1, _reviewed_stage2, _reviewed_stage3, _docs_done
+   02_PAGE.md  수정 → 제거: _reviewed_stage2, _reviewed_stage3, _docs_done
+   pages/**/*.html 수정
+     ├─ _reviewed_stage3 이미 있음(검토 후 수정) → 제거: _reviewed_stage3, _docs_done
+     │                                            + "linter→reviewer 재검토하라" 주입
+     └─ 아직 검토 전(양산 중)               → 마커 제거 없이 count>=expected 면
+                                              "linter+reviewer 하라" 주입만
+   docs/index.html → (_docs_done 없을 때만) "status=delivered + _docs_done + 최종보고" 주입
+
+   ※ expected(페이지 수)는 02_PAGE.md "페이지 목록" 표에서 셀 첫 칸이 P#인 행만 카운트
+     (트리/본문에 흩어진 P# 언급이나 오타가 개수를 부풀리지 않도록 표 행에 고정).
+
+   ※ 모든 주입 메시지 끝에 "너가 sub-agent면 이 지시 무시하라" 단서가 붙는다
+     (훅은 sub-agent의 Write에도 발화할 수 있으므로 — main 전용 지시 보호).
+
+
+[5] 모델 배치 (왜 이 에이전트에 이 모델인가)
+================================================================================
+
+   main          세션 모델   위임/조율/소규모 수정
+   client-init   sonnet      가벼운 식별 (표지만 읽음)
+   feat-writer   opus  ★     계약 해석 = 추론 무거움
+   page-mapper   sonnet      구조화 매핑
+   ui-foundation opus  ★     디자인 기반 = 이후 전 페이지의 원본, 품질 책임
+   html-builder  sonnet      exemplar 복제 양산
+   linter        haiku       grep 기계검사 (가장 쌈)
+   reviewer      opus  ★     품질 게이트 = 봐주지 않는 객관 검토
+   docs-builder  sonnet      문서 조립
+
+   ⚠️ 환경변수 CLAUDE_CODE_SUBAGENT_MODEL 을 설정하면 위 배치가 전부 덮어써진다.
+      이 키트에서는 절대 설정 금지 (settings.json 에서 의도적으로 비워둠).
+
+
+[6] 자가-합리화 방지 장치 (이 키트의 핵심 안전설계)
+================================================================================
+
+   ┌─ main 은 자기/sub-agent 가 만든 산출물을 스스로 "통과" 판정하지 못한다.
+   │  → 매 단계 반드시 별도 컨텍스트의 reviewer(opus) 를 거쳐야 마커가 생긴다.
+   │
+   ├─ 마커는 "reviewer 통과 + 권고 반영 완료" 직후에만 main 이 만든다.
+   │  → 마커 없으면 Stop 훅이 다음 단계로 못 넘어가게 계속 같은 단계로 되돌림.
+   │
+   └─ sub-agent 는 Task tool 이 없다 → 검토를 자기가 못 부른다 → 반드시 main 경유.
+
+   결과: "대충 만들고 스스로 OK" 가 구조적으로 불가능. 검토를 건너뛰면 마커가
+        안 생기고, 마커가 없으면 Stop 훅이 종료를 막는다.
+
+================================================================================
+ (끝) — 더 자세한 설명·문제점·주의사항은 설명서.txt 참조
+================================================================================

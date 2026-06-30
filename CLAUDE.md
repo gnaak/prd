@@ -1,7 +1,9 @@
 # 작업 지침: 계약서 → HTML 화면 정의
 
-이 폴더는 **SI 개발 계약서를 받아 화면 HTML 목업까지 뽑는 작업장**이다.
-새로운 계약서(주로 `contract/` 안의 PDF)가 들어오면 아래 3단계 프로세스를 따른다.
+이 문서는 이 repo의 **계약서 → HTML 화면정의 파이프라인**(`html/` 영역) 작업 지침이다.
+**SI 개발 계약서를 받아 화면 HTML 목업까지 뽑는다.** 새 계약서는 `html/_inbox/`에 넣고, 산출물은 **고객사별 폴더 `html/clients/{slug}/`** 안에 쌓인다. (이 repo는 추후 이 산출물을 로그인 뒤에서 서빙·코멘트받는 백엔드/프론트 포털로 확장된다 — 폴더 `{slug}`가 그대로 테넌트 키가 된다.)
+
+새 계약서가 들어오면 **0단계(고객사 식별) → 1~3단계** 프로세스를 따른다.
 
 ---
 
@@ -11,6 +13,24 @@
 - 계약서마다 1단계 인풋만 바뀔 뿐, **2·3단계 템플릿은 그대로 재사용**한다.
 - 각 단계의 산출물을 다음 단계에서 인풋으로 쓴다. 단계를 건너뛰지 않는다.
 - **별도의 화면 정의서(.md)는 만들지 않는다.** HTML 자체가 화면 정의 역할을 한다.
+- **모든 산출물은 해당 고객사 폴더 `html/clients/{slug}/` 안에 만든다** (이하 `$base`로 표기).
+
+---
+
+## 0단계: 고객사 식별 (Client Setup)
+
+`html/_inbox/`의 새 계약서에서 **발주처(고객사)명·사업명**만 읽어 slug를 정하고 신원 메타를 만든다. (`client-init` 에이전트 담당)
+
+### 산출물: `$base/client.json`
+
+```json
+{ "slug": "modulounge", "name": "모두라운지", "project": "맞춤형 AI 프로젝트", "contract": "contract/...pdf", "status": "building", "created": "2026-06-30" }
+```
+
+- slug = 소문자 ascii kebab-case (한글명은 로마자 음차). 폴더명이자 미래 DB Org 키
+- `status` = `building`(작업 중) → 완료 시 main이 `delivered`로 변경
+- `created` = 빌드 시작일 `YYYY-MM-DD` (client-init이 호출 프롬프트에 받은 오늘 날짜로 기록. 모르면 빈 문자열로 두고 main이 셋업 때 채움)
+- 이후 main이 PDF를 `$base/contract/`로 옮기고(`Move-Item`) `.claude/_current_client`에 slug를 기록한 뒤 1단계로
 
 ---
 
@@ -18,7 +38,7 @@
 
 계약서에서 **개발 범위 / 기능 리스트 / 별첨**만 읽고, 기능을 동작 단위로 쪼갠다.
 
-### 산출물: `01_FEAT.md`
+### 산출물: `$base/01_FEAT.md`
 
 **표 + 상세 섹션** 구조로 작성한다 (노션 DB로 옮길 수 있도록).
 
@@ -51,7 +71,7 @@
 
 추출한 기능들을 **화면(페이지) 단위**로 묶는다. 한 페이지 = 한 사용자 목적.
 
-### 산출물: `02_PAGE.md`
+### 산출물: `$base/02_PAGE.md`
 
 **표 형태**로 작성한다.
 
@@ -72,25 +92,30 @@
 
 2단계 페이지 맵을 그대로 HTML로 옮긴다. **와이어프레임(.md, ASCII 등) 단계는 건너뛴다** — HTML 자체가 와이어프레임이자 최종 산출물.
 
-### 폴더 구조
+### 폴더 구조 (고객사별)
 ```
-pages/
-├── index.html          # 페이지 맵 허브 (사용자/관리자 영역 시각 구분)
-├── user/
-│   ├── home.html
-│   └── ...
-├── admin/
-│   ├── dashboard.html
-│   └── ...
-└── assets/
-    └── css/common.css
+html/clients/{slug}/
+├── client.json         # 고객사 신원 메타 (0단계 산출물)
+├── contract/           # 그 고객사 계약서 PDF
+├── 01_FEAT.md  02_PAGE.md
+├── docs/index.html     # 고객 공유 문서
+└── pages/
+    ├── index.html      # 페이지 맵 허브 (사용자/관리자 영역 시각 구분)
+    ├── user/
+    │   ├── home.html
+    │   └── ...
+    ├── admin/
+    │   ├── dashboard.html
+    │   └── ...
+    └── assets/
+        └── css/common.css
 ```
 
 ### 작성 원칙
 - `pages/index.html`은 모든 페이지로 가는 **허브** 역할 (사용자/관리자 카드 그리드)
 - 페이지 간 이동 링크는 **실제로 동작**하도록 연결
 - 더미 데이터는 실제 길이·개수와 유사하게 채움
-- 한 번 만든 `common.css`는 다음 프로젝트에도 재활용
+- 한 번 만든 `common.css`는 다음 고객사에도 재활용 (고객사 폴더마다 자기 사본을 가짐 — 폴더가 독립적으로 서빙되도록)
 - 모바일 화면은 모바일 폭으로 시각화 (PC에서 봐도 모바일임을 알게)
 - 관리자 화면은 PC 폭 활용
 
@@ -167,14 +192,17 @@ pages/
 
 ## 산출물 요약
 
+모든 산출물은 `html/clients/{slug}/` 안에 생성된다 (이하 `$base`):
+
 | 단계 | 파일 | 역할 |
 |------|------|------|
-| 1 | `01_FEAT.md` | 기능 카탈로그 (표) |
-| 2 | `02_PAGE.md` | 페이지 맵 (표 + 트리) |
-| 3 | `pages/**/*.html` | HTML 목업 (실제 화면 시안) |
-| 공통 | `docs/index.html` | **고객 공유용 인터랙티브 문서** (모든 단계 누적 반영 + 시안으로 연결) |
+| 0 | `$base/client.json` | 고객사 신원 메타 (slug·name·project) |
+| 1 | `$base/01_FEAT.md` | 기능 카탈로그 (표) |
+| 2 | `$base/02_PAGE.md` | 페이지 맵 (표 + 트리) |
+| 3 | `$base/pages/**/*.html` | HTML 목업 (실제 화면 시안) |
+| 공통 | `$base/docs/index.html` | **고객 공유용 인터랙티브 문서** (모든 단계 누적 반영 + 시안으로 연결) |
 
-### 고객 공유용 산출물 (`docs/index.html`)
+### 고객 공유용 산출물 (`$base/docs/index.html`)
 
 - 1단계 산출물부터 차례로 **하나의 HTML 문서**에 누적해 채워간다
 - `pages/`와는 다른 산출물 — 그건 *화면 시안*, 이건 *기획 문서*
@@ -218,17 +246,18 @@ pages/
 
 ### 실행 모드
 
-1. **`/build` (권장)** — 사용자가 `contract/`에 PDF만 넣고 `/build` 실행. 스코프 질문 없이 1→2→3단계 + docs까지 전자동. 해석이 갈리는 범위는 보수적으로 포함하고 완료 보고에 명시.
+1. **`/build` (권장)** — 사용자가 `html/_inbox/`에 PDF만 넣고 `/build` 실행. 0단계(고객사 식별)부터 1→2→3단계 + docs까지 스코프 질문 없이 전자동. 해석이 갈리는 범위는 보수적으로 포함하고 완료 보고에 명시. (기존 고객사 재빌드는 `/build {slug}`)
 2. **대화 모드** — PDF 감지 후 사용자가 "ㄱㄱ"/"시작" 등 진행 신호를 주면 동일 파이프라인을 autopilot으로 진행. 시작 전 개발 범위 발췌를 한 번 보여주는 점만 다름.
 
 어느 모드든 reviewer가 같은 단계에서 2회 연속 블로커를 보고하거나 스코프 변경이 필요할 때만 사용자에게 보고하고 멈춘다.
 
 **`reviewer` 호출은 필수** — main이 자기(또는 sub-agent)가 만든 산출물을 직접 검토하지 않는다.
 
-### 자동화 키트 (새 프로젝트에 그대로 복사해서 재사용)
+### 자동화 키트 (새 repo에 그대로 복사해서 재사용)
 
 | 구성 요소 | 파일 | 모델 |
 |---|---|---|
+| 0단계 생성 (고객사 식별) | `.claude/agents/client-init.md` | sonnet |
 | 1단계 생성 (계약 해석) | `.claude/agents/feat-writer.md` | opus |
 | 2단계 생성 (페이지 맵) | `.claude/agents/page-mapper.md` | sonnet |
 | 3단계 기반 (CSS+허브+exemplar) | `.claude/agents/ui-foundation.md` | opus |
@@ -236,8 +265,10 @@ pages/
 | 기계적 검사 | `.claude/agents/linter.md` | haiku |
 | 단계 검토 게이트 | `.claude/agents/reviewer.md` | opus |
 | 고객 문서 | `.claude/agents/docs-builder.md` | sonnet |
-| 훅 (PDF 감지 / 단계 트리거 / 완주 게이트) | `.claude/hooks/*.ps1` + `.claude/settings.json` | - |
+| 훅 (계약서 감지 / 단계 트리거 / 완주 게이트) | `.claude/hooks/*.ps1` + `.claude/settings.json` | - |
 | 진입점 | `.claude/commands/build.md` (`/build`) | - |
 | 오케스트레이션 룰 | `AGENT.md` | - |
 
-**새 프로젝트 셋업** = `CLAUDE.md` + `DESIGN.md` + `AGENT.md` + `.claude/` 폴더 복사 → `contract/`에 계약서 PDF → `/build`. 산출물(`01_FEAT.md`, `02_PAGE.md`, `pages/`, `docs/`)은 복사하지 않는다.
+**새 고객사 추가** = `html/_inbox/`에 계약서 PDF를 넣고 `/build` 실행. 0단계(client-init)가 고객사를 식별해 `html/clients/{slug}/`를 만들고 거기에 전 산출물을 쌓는다.
+
+**자동화 키트를 새 repo로 복사**할 땐 `CLAUDE.md` + `DESIGN.md` + `AGENT.md` + `.claude/` + 빈 `html/_inbox/`만 가져가고, 기존 `html/clients/*` 산출물은 복사하지 않는다.

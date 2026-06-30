@@ -26,8 +26,16 @@
       "Bash(curl * | bash)",
       "Bash(wget * | sh)",
       "Bash(wget * | bash)",
-      "PowerShell(Remove-Item -Recurse -Force *)",
-      "PowerShell(rm -rf *)",
+      "PowerShell(Remove-Item -Recurse -Force C:*)",
+      "PowerShell(Remove-Item -Recurse -Force /*)",
+      "PowerShell(Remove-Item -Recurse -Force ~*)",
+      "PowerShell(Remove-Item -Recurse -Force ..*)",
+      "PowerShell(Remove-Item -Recurse -Force $env:*)",
+      "PowerShell(Remove-Item -Path C:* -Recurse*)",
+      "PowerShell(Remove-Item -Path /* -Recurse*)",
+      "PowerShell(rm -rf /*)",
+      "PowerShell(rm -rf ~*)",
+      "PowerShell(rm -rf C:*)",
       "PowerShell(Format-Volume *)",
       "PowerShell(Clear-Disk *)"
     ]

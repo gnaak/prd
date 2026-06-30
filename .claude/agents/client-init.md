@@ -36,7 +36,8 @@ model: sonnet
   "name": "모두라운지",
   "project": "맞춤형 AI 프로젝트",
   "contract": "contract/5. 계약서 1부..pdf",
-  "status": "building"
+  "status": "building",
+  "created": "2026-06-30"
 }
 ```
 
@@ -44,12 +45,14 @@ model: sonnet
 - `project` = 사업·과업명 (없으면 빈 문자열)
 - `contract` = **이동 후 경로 기준** `contract/{원본 파일명}` (PDF는 이후 main이 `html/clients/{slug}/contract/`로 옮긴다 — 너는 옮기지 않는다. 파일명만 그대로 적는다)
 - `status` = 항상 `"building"` 으로 둔다 (완료 시 main이 `"delivered"`로 바꿈)
+- `created` = 빌드 시작일 `YYYY-MM-DD`. 호출 프롬프트에 오늘 날짜가 주어지면 그 값을 쓰고, 없으면 빈 문자열 `""`로 둔다 (main이 셋업 때 채운다). 이 6개 필드 외에 임의로 키를 추가하지 않는다
 
 ## 자가 점검 (Write 전에)
 
 - [ ] slug가 소문자 ascii + kebab-case, 기존 `html/clients/*`와 충돌 없음
 - [ ] name이 수행사가 아니라 **발주처(고객사)** 명
 - [ ] contract 파일명이 _inbox의 실제 PDF 파일명과 정확히 일치
+- [ ] JSON 키가 정확히 6개(slug/name/project/contract/status/created) — 그 외 키 없음
 - [ ] 기능·금액·조항 내용이 들어가지 않음 (식별 정보만)
 
 ## 반환 형식
