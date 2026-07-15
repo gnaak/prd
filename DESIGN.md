@@ -37,6 +37,7 @@ The remaining colours form Notion's **decorative sticker palette** — they appe
 - **White** (`{colors.canvas}` / `{colors.surface}` — #ffffff): card and panel surfaces, nav bar, form fields.
 - **Warm Paper** (`{colors.canvas-soft}` — #f6f5f4): the signature page canvas and the footer band — a warm off-white that gives the whole site its document-like calm.
 - **Hairline** (`{colors.hairline}` — #e6e6e6): 1px card borders and dividers, a black-at-10%-on-white blend kept solid for token reuse.
+- **Bezel** (`{colors.bezel}` — #1b1d22): the one near-black surface in the system — used **only** for the mobile device frame that wraps user-side mockups (see *Mobile Device Frame*). Never a page background, card, or CTA.
 
 ### Text
 - **Ink** (`{colors.ink}` — #000000): primary headings and body text (rendered at ~95% alpha for a soft true-black).
@@ -113,8 +114,9 @@ Product screenshots and illustration tiles sit inside rounded `{rounded.lg}` fra
 | 0 — Flat | Hairline border `{colors.hairline}`, no shadow | Default cards on the warm canvas |
 | 1 — Soft | Layered micro-shadow: `rgba(0,0,0,0.01) 0 0.175px 1.041px`, `0.02 0 0.8px 2.925px`, `0.027 0 2.025px 7.847px`, `0.04 0 4px 18px` | Raised feature cards, floating buttons |
 | 2 — Elevated | Deeper 5-stop stack ending in `rgba(0,0,0,0.05) 0 23px 52px` | Modals, popovers, the elevated white pill on the dark hero |
+| Device | `{shadow.device}` — `0 24px 50px -28px rgba(0,0,0,0.5)` | **Only** the mobile device bezel (`.mobile-frame`). A single long, tightly-pulled-in shadow that reads as a phone resting on the paper canvas, not as UI elevation |
 
-Notion's elevation philosophy is **barely-there**: shadows are built from many near-transparent layers so surfaces feel gently lifted off the paper rather than dramatically dropped. Most cards rely on a hairline alone.
+Notion's elevation philosophy is **barely-there**: shadows are built from many near-transparent layers so surfaces feel gently lifted off the paper rather than dramatically dropped. Most cards rely on a hairline alone. The device shadow is the sole exception, and it belongs to the frame, never to anything inside the screen.
 
 ### Decorative Depth
 The brand's real depth cue is **illustration**, not shadow. The dark indigo hero (`{colors.secondary}`) uses glowing sticker stickers and a starfield to create a sense of a lit night scene, and feature sections layer small colourful app-icon stickers over plain surfaces to add playful dimensionality. Colour-blocked illustration tiles (purple, pink, orange, teal headers on otherwise-white cards) provide visual rhythm.
@@ -130,6 +132,8 @@ The brand's real depth cue is **illustration**, not shadow. The dark indigo hero
 | `{rounded.md}` | 8px | Utility / nav buttons, smaller cards |
 | `{rounded.lg}` | 12px | Feature cards, illustration frames, content tiles |
 | `{rounded.xl}` | 16px | Large containers, image wells |
+| `{rounded.screen}` | 32px | The phone screen inside the device frame |
+| `{rounded.bezel}` | 40px | The device bezel (`{rounded.screen}` + 8px padding) |
 | `{rounded.full}` | 9999px | Marketing pill CTAs, badges, circular icon buttons |
 
 ### Photography Geometry
@@ -180,6 +184,33 @@ Product screenshots are framed in rounded `{rounded.lg}` / `{rounded.xl}` wells,
 
 **`text-input`** — Text / number field
 - White surface `{colors.surface}`, `{colors.ink}` text, `{typography.body-sm}`, 1px `rgb(221,221,221)` border, rounded `{rounded.xs}` (4px), padding `6px`. Square-ish corners deliberately tighter than the pill CTAs. Focus adds the soft Level-1 shadow.
+
+### Mobile Device Frame (mockup chrome)
+
+> Used by every user-side (mobile) mockup in `pages/user/`. The frame is **presentation chrome** — it tells the viewer "this is a phone" on a PC screen — and is the only place the near-black `{colors.bezel}` and the `{shadow.device}` shadow appear. There is no notch, camera hole, side button or speaker grille: a dark rounded slab, a rounded screen, a status bar and a home indicator, nothing else.
+
+```
+.mobile-stage                 warm canvas, 100vh, flex-centred — the frame always fits the viewport
+└─ .mobile-frame              bezel  376×736 · padding 8 · radius 40 · bg {colors.bezel} · {shadow.device}
+   └─ .m-screen               screen 360×720 · radius 32 · bg {colors.surface} · overflow hidden · flex column
+      ├─ .m-status            32px · "9:41" left, Lucide signal/wifi/battery right · 12px/600 · always present
+      ├─ .m-header            48px · title 15px/600 · optional back / icon buttons · hairline bottom
+      ├─ .m-content           flex:1 · the ONLY scroll container · own background when the page needs canvas grey
+      ├─ .m-tabbar            56px · grid, one column per tab · Lucide 18px icon + 10px label · hairline top
+      └─ .m-home              24px · centred 112×4 pill in {colors.ink} at 90% — the home indicator · always present
+```
+
+| Part | Size | Notes |
+|---|---|---|
+| Bezel `.mobile-frame` | 376 × 736, `max-height: calc(100vh - 48px)` | `{colors.bezel}` fill, `{rounded.bezel}`, `{shadow.device}`. Padding 8px on all sides is what exposes the bezel around the screen |
+| Screen `.m-screen` | 360 × 720 (fills the bezel) | `{colors.surface}` background, `{rounded.screen}`, `overflow: hidden` so content clips to the rounded corners |
+| Status bar `.m-status` | 32px | Time on the left, Lucide `signal` `wifi` `battery-full` on the right. Same surface as the screen — never a separate colour band |
+| Header `.m-header` | 48px | Present on most pages; omitted on splash / full-bleed pages |
+| Content `.m-content` | remaining height | Only scrolling region. Give it `background: {colors.canvas-soft}` directly when the page uses grey canvas + white cards |
+| Tab bar `.m-tabbar` | 56px | Present on top-level pages; omitted on detail / flow pages |
+| Home indicator `.m-home` | 24px | Always present, even on splash. It replaces the old "padding-bottom" hack |
+
+Sizes are proportional to a 300px reference mock (bezel radius 34 → 40, screen radius 27 → 32, status 30 → 32, header 42 → 48, nav 46 → 56, home 22 → 24) scaled to a 360px screen.
 
 ### Signature Components
 
@@ -242,6 +273,7 @@ Product screenshots are framed in rounded `{rounded.lg}` / `{rounded.xl}` wells,
 - Don't paint a CTA or structural fill in any sticker-palette colour — those are decoration only.
 - Don't introduce a second structural accent alongside `{colors.primary}`.
 - Don't put pill `{rounded.full}` radii on form fields — inputs stay tight at `{rounded.xs}` (4px).
-- Don't drop heavy shadows; Notion's elevation is many near-transparent layers, never a hard cast.
+- Don't drop heavy shadows; Notion's elevation is many near-transparent layers, never a hard cast. (`{shadow.device}` on the phone bezel is the one exception — and it stays on the bezel.)
 - Don't set body copy in a heavy weight — keep 400 for readability and let weight 700 belong to headlines.
 - Don't place type on pure clinical white for full pages; the warm `{colors.canvas-soft}` is core to the brand calm.
+- Don't decorate the device frame — no notch, dynamic island, camera dot, side buttons, reflections or gradients on the bezel. `{colors.bezel}` is flat, and it never appears anywhere but `.mobile-frame`.

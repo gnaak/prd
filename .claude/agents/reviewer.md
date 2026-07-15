@@ -54,10 +54,13 @@ Main agent가 한 단계를 끝낸 후 너를 호출한다. 너는 산출물을 
 - [ ] body 14px / 헤딩 18~26px / 버튼 padding 8~10×16~18 정도
 - [ ] 메인 액션 버튼(마이크 등)이 60px 이상 ❌
 
-### 모바일 프레임
-- [ ] `.mobile-stage`가 `height:100vh` + flex center
-- [ ] `.mobile-frame`이 `360 × 720` 고정, viewport 안에 fit
-- [ ] 모바일 내부 스크롤은 `.m-content`에서만
+### 모바일 프레임 (다크 베젤 폰 — CLAUDE.md "모바일 디바이스 프레임" 기준)
+- [ ] `.mobile-stage`가 `height:100vh` + flex center, canvas 배경
+- [ ] `.mobile-frame` = 베젤: 376×736 · padding 8 · radius 40 · `#1b1d22` · `--shadow-device` / `.m-screen` = 360×720 · radius 32 · 흰 배경 · overflow hidden
+- [ ] 모든 사용자 페이지가 `.m-status`(상태바)와 `.m-home`(홈 인디케이터)를 가짐 — 스플래시·로그인 포함
+- [ ] 노치·카메라홀·측면 버튼·베젤 그라데이션 같은 장식 ❌
+- [ ] 프레임 클래스를 페이지에서 인라인/`<style>`로 재정의하지 않음 (크기·색·radius)
+- [ ] 모바일 내부 스크롤은 `.m-content`에서만 (`.m-screen`·`body`가 스크롤되면 지적)
 
 ### 인터랙션 (죽은 버튼 금지)
 - [ ] **모든 버튼이 클릭에 반응** — 페이지 이동 / 상태 토글 / 시각 피드백 중 하나

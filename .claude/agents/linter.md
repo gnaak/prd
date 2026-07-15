@@ -18,6 +18,13 @@ model: haiku
 - `pages/index.html` 허브 존재하는가
 - `02_PAGE.md`에 `파일` 컬럼 자체가 없으면 그 사실을 차단으로 보고 (page-mapper가 먼저 갱신해야 함)
 
+### 1b. CSS 주석 무결성 (`pages/assets/css/common.css` + 각 html의 `<style>`)
+- `/\*` 개수와 `\*/` 개수가 다르면 ⛔ 차단 (주석 미종료/조기 종료 → 뒤따르는 규칙이 통째로 무효)
+- 주석 안에 `**/` 글롭 패턴(예: `pages/**/*.html`) — pattern: `\*\*/` — 있으면 ⛔ 차단 (실제 사고: `:root` 토큰 블록이 전부 날아가 베젤·배경·헤어라인이 렌더되지 않음)
+
+### 1c. 레이아웃 루트 클래스 오용 (`pages/index.html` + `pages/user/*.html`)
+- 관리자 레이아웃 루트가 아닌 요소에 `admin` 단독 클래스 — pattern: `class="[^"]*\badmin\b[^"]*"` — 허브·사용자 페이지에서 발견되면 ❌ 위반 (common.css `.admin` 그리드가 적용되어 레이아웃이 깨짐. 실제 사고: 허브 관리자 섹션 카드가 100vh로 늘어남)
+
 ### 2. 필수 import (모든 html 파일 각각)
 - `common.css` link 태그 — Grep pattern: `assets/css/common\.css`
 - Lucide 스크립트 — pattern: `unpkg\.com/lucide`
@@ -26,11 +33,12 @@ model: haiku
 ### 3. 디자인 금지어 (pages/ 한정)
 - `linear-gradient|radial-gradient` — 위반 (docs/는 검사 대상 아님)
 - 이모지 — pattern: `[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]` 또는 `●|○|■|▶(?![^<]*lucide)` 류 도형문자 직접 사용
-- `box-shadow`에 진한 알파 — pattern: `rgba\(0, ?0, ?0, ?0\.[3-9]` — 의심 항목으로 보고
+- `box-shadow`에 진한 알파 — pattern: `rgba\(0, ?0, ?0, ?0\.[3-9]` — 의심 항목으로 보고 (html 파일 한정. `common.css`의 `--shadow-device`는 베젤 전용 예외라 검사 대상 아님)
 
 ### 4. 모바일 프레임 (pages/user/*.html)
-- `mobile-stage` / `mobile-frame` 클래스 사용 여부
-- 인라인으로 frame 크기를 재정의(360/720 이외 값)한 곳 — 의심 보고
+- `mobile-stage` / `mobile-frame` / `m-screen` 세 클래스가 모두 있는가 — 하나라도 없으면 위반
+- `m-status`와 `m-home`이 있는가 (상태바·홈 인디케이터는 모든 사용자 페이지 필수) — 없으면 위반
+- 페이지 안에서 프레임 클래스를 재정의한 곳 — pattern: `\.(mobile-frame|m-screen|mobile-stage)\s*\{` 이 html의 `<style>`에 있거나, `mobile-frame`/`m-screen` 요소에 `style="` 인라인이 있으면 의심 보고
 
 ### 5. 죽은 버튼 의심 (모든 html)
 - `href="#"` — 위반
