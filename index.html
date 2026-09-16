@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>계약서 → HTML 화면 시안 파이프라인</title>
+<link rel="stylesheet" href="pages/assets/css/common.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  .land { max-width: 880px; margin: 0 auto; padding: 72px 32px 80px; }
+  .land-head { padding-bottom: 28px; border-bottom: 1px solid var(--hairline); margin-bottom: 32px; }
+  .land-head .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+  .land-head h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.7px; line-height: 1.25; }
+  .land-head p { margin-top: 12px; font-size: 15px; color: var(--ink-muted); max-width: 620px; line-height: 1.65; }
+  .land-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .land-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .land-card { display: flex; flex-direction: column; gap: 10px; padding: 24px; color: inherit; }
+  .land-card .ic { width: 34px; height: 34px; border-radius: var(--r-md); background: var(--canvas); display: grid; place-items: center; }
+  .land-card .ic [data-lucide] { width: 17px; height: 17px; color: var(--ink-secondary); }
+  .land-card h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+  .land-card p { font-size: 13.5px; color: var(--ink-muted); line-height: 1.6; flex: 1; }
+  .land-card .go { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: var(--primary); }
+  .land-card .go [data-lucide] { width: 14px; height: 14px; }
+  .land-card:hover .go { text-decoration: underline; }
+  .land-note { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--hairline); font-size: 13px; color: var(--ink-muted); line-height: 1.7; }
+  .land-note a { color: var(--primary); }
+  .land-foot { margin-top: 28px; font-size: 12px; color: var(--ink-faint); }
+  @media (max-width: 680px) { .land { padding: 44px 20px 60px; } .land-grid { grid-template-columns: 1fr; } .land-head h1 { font-size: 24px; } }
+</style>
+</head>
+<body>
+  <div class="land">
+    <header class="land-head">
+      <div class="eyebrow">Contract → Screen Definition</div>
+      <h1>계약서 한 장에서 화면 시안까지</h1>
+      <p>SI 개발 계약서 PDF를 넣으면 기능 정의 → 페이지 맵 → 동작하는 HTML 시안 → 고객 공유 문서까지 자동으로 만들어내는 Claude Code 워크플로우 키트입니다. 아래는 가상의 계약서로 파이프라인을 완주한 결과물입니다.</p>
+      <div class="land-meta">
+        <span class="badge badge-outline">기능 34개</span>
+        <span class="badge badge-outline">화면 19개</span>
+        <span class="badge badge-outline">사용자 12 · 관리자 7</span>
+      </div>
+    </header>
+
+    <div class="land-grid">
+      <a class="card card-link land-card" href="pages/index.html">
+        <span class="ic"><i data-lucide="layout-grid"></i></span>
+        <h2>화면 시안 허브</h2>
+        <p>19개 화면을 모아둔 목록. 모바일은 다크 베젤 프레임, 관리자는 PC 폭으로 그렸고 버튼·탭·시트가 실제로 동작합니다.</p>
+        <span class="go">시안 보기 <i data-lucide="arrow-right"></i></span>
+      </a>
+
+      <a class="card card-link land-card" href="docs/index.html">
+        <span class="ic"><i data-lucide="book-open"></i></span>
+        <h2>고객 공유 기획 문서</h2>
+        <p>환경 · 기능 목록 · 페이지 맵 · 화면 시안을 하나로 묶은 문서. 고객사에 그대로 보낼 수 있는 톤으로 만듭니다.</p>
+        <span class="go">문서 보기 <i data-lucide="arrow-right"></i></span>
+      </a>
+    </div>
+
+    <p class="land-note">
+      샘플은 가상의 코워킹 스페이스 &ldquo;모두라운지&rdquo;의 회의실·좌석 예약 서비스입니다. 실제 고객사 정보는 들어 있지 않습니다.<br>
+      키트를 직접 써보거나 구조가 궁금하시면 <a href="https://github.com/gnaak/prd">GitHub 저장소</a>를 보세요.
+    </p>
+    <p class="land-foot">MIT License</p>
+  </div>
+<script>
+  lucide.createIcons();
+</script>
+</body>
+</html>

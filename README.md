@@ -8,6 +8,10 @@ SI 개발 계약서(기획서) PDF 한 장을 넣으면 **기능 정의 → 페�
 contract/계약서.pdf  →  /build  →  01_FEAT.md · 02_PAGE.md · pages/**.html · docs/index.html
 ```
 
+**▶ [라이브 데모](https://gnaak.github.io/prd/)** — 가상의 계약서로 뽑은 화면 시안 19장과 고객 문서를 직접 눌러볼 수 있습니다.
+
+![화면 시안 허브](preview/hub.png)
+
 ---
 
 ## 무엇이 나오나
@@ -21,28 +25,24 @@ contract/계약서.pdf  →  /build  →  01_FEAT.md · 02_PAGE.md · pages/**.h
 | 3 | [`pages/`](pages/) | HTML 목업 19장 — 버튼·탭·시트가 실제로 동작 |
 | 마무리 | [`docs/index.html`](docs/index.html) | 고객사에 그대로 보낼 수 있는 인터랙티브 기획 문서 |
 
-**미리보기**: `pages/index.html`(시안 허브) 또는 `docs/index.html`(고객 문서)을 브라우저로 엽니다. 페이지 간 상대경로 링크가 동작하려면 폴더 구조를 유지한 채 열어야 합니다 (VS Code Live Server 권장 — 포트 5501로 설정되어 있습니다).
+**로컬에서 보려면**: `pages/index.html`(시안 허브) 또는 `docs/index.html`(고객 문서)을 브라우저로 엽니다. 페이지 간 상대경로 링크가 동작하려면 폴더 구조를 유지한 채 열어야 합니다 (VS Code Live Server 권장 — 포트 5501로 설정되어 있습니다).
 
 ### 시안 톤
 
-<table>
-<tr>
-<td width="42%" valign="top">
+**사용자 — 모바일.** 다크 베젤 폰 프레임(376×736) 안에 360×720 스크린. 상태바·홈 인디케이터 고정, 스크롤은 본문에서만. 노치·카메라홀 같은 장식은 넣지 않습니다.
 
-**사용자 — 모바일**
+<p align="center">
+  <img src="preview/mobile-home.png" width="46%" alt="모바일 홈 화면">
+  <img src="preview/mobile-reserve.png" width="46%" alt="예약 시간 선택 화면">
+</p>
 
-다크 베젤 폰 프레임(376×736) 안에 360×720 스크린. 상태바·홈 인디케이터 고정, 스크롤은 본문에서만. 노치·카메라홀 같은 장식은 넣지 않습니다.
+**관리자 — PC.** 220px 좌측 GNB + 전체 폭 콘텐츠. KPI 카드, 헤어라인 테이블, 우측 드로어, 모달.
 
-</td>
-<td valign="top">
+![관리자 대시보드](preview/admin-dashboard.png)
 
-**관리자 — PC**
+**고객 공유 문서.** 기능 목록·페이지 맵·화면 시안을 한 문서에 담고, 카드에서 실제 시안으로 이동합니다.
 
-220px 좌측 GNB + 전체 폭 콘텐츠. KPI 카드, 헤어라인 테이블, 우측 드로어, 모달.
-
-</td>
-</tr>
-</table>
+![고객 공유 문서](preview/docs.png)
 
 디자인은 [`DESIGN.md`](DESIGN.md)의 Notion 톤을 따릅니다 — warm paper 캔버스(`#f6f5f4`)에 흰 카드, 구조 액센트는 파랑(`#0075de`) 하나, 아이콘은 Lucide. **그라데이션 CTA·진한 드롭섀도·이모지 남발 같은 "AI가 만든 티"는 규칙으로 금지**되어 있고 linter가 잡습니다.
 
@@ -52,7 +52,7 @@ contract/계약서.pdf  →  /build  →  01_FEAT.md · 02_PAGE.md · pages/**.h
 
 ### 1. 준비
 
-Claude Code가 설치된 상태에서 이 repo를 클론합니다. 훅이 PowerShell로 작성되어 있어 **현재는 Windows 전용**입니다 (macOS/Linux에서 쓰려면 `.claude/hooks/*.ps1`을 셸 스크립트로 옮겨야 합니다).
+Claude Code가 설치된 상태에서 이 repo를 클론합니다. 파이프라인 본체(에이전트 정의·`/build`·규칙 문서)는 플랫폼을 가리지 않고, **훅 3개만 PowerShell**입니다 — 자세한 건 아래 [플랫폼](#플랫폼)을 보세요.
 
 ```bash
 git clone <this-repo>
@@ -129,9 +129,40 @@ contract/ 에 기획서 PDF를 넣는다
 
 ---
 
+## 플랫폼
+
+파이프라인 본체 — 에이전트 정의, `/build`, `CLAUDE.md`·`DESIGN.md`·`AGENT.md` 규칙 — 는 전부 마크다운이라 어디서든 동작합니다. OS를 타는 건 **훅 3개뿐**입니다.
+
+| | Windows | macOS · Linux |
+|---|---|---|
+| 파이프라인 (1~3단계 + docs) | ✅ | ✅ |
+| 훅 (자동 연결 · 완주 게이트) | ✅ | PowerShell 필요 |
+
+`.claude/settings.json`이 훅을 `powershell`로 호출하는데, macOS·Linux에서는 PowerShell Core가 `pwsh`로 설치됩니다. 그래서 그대로 두면 훅이 뜨지 않고 Claude Code가 조용히 넘어갑니다 — **파이프라인 자체는 계속 돕니다.** 오케스트레이터가 `AGENT.md` 절차를 직접 따르기 때문이고, 다만 이런 걸 잃습니다:
+
+- 턴이 끝날 때 다음 단계를 강제 주입하는 **자동 연결** (대신 "계속"이라고 한 번씩 말해주면 됩니다)
+- 빈 스텁·고아 파일을 막는 **완주 게이트** (reviewer 검토는 그대로 동작합니다)
+
+훅까지 쓰려면 [PowerShell Core](https://github.com/PowerShell/PowerShell)를 설치하고 `.claude/settings.json`의 `powershell`을 `pwsh`로 바꾸면 됩니다. 훅 스크립트는 win32 전제(경로 구분자·`ascii` 인코딩)로 쓰여 있어 약간의 손질이 필요할 수 있습니다.
+
+---
+
+## 시안을 링크로 공유하기
+
+산출물이 전부 정적 HTML이라 GitHub Pages로 그대로 띄울 수 있습니다. 저장소 **Settings → Pages → Source: Deploy from a branch → `main` / `(root)`** 로 설정하면 끝입니다.
+
+| 경로 | 내용 |
+|---|---|
+| `/` | 랜딩 (`index.html`) — 시안 허브와 고객 문서로 가는 입구 |
+| `/pages/index.html` | 화면 시안 허브 19장 |
+| `/docs/index.html` | 고객 공유 기획 문서 |
+
+루트의 `.nojekyll`이 Jekyll 처리를 끄기 때문에 폴더 구조와 상대경로가 그대로 유지됩니다. 고객사에 보낼 때는 `/docs/index.html` 링크 하나면 충분합니다 — 문서 안의 시안 카드가 각 화면으로 연결됩니다.
+
+---
+
 ## 한계
 
-- **Windows 전용** — 훅이 PowerShell입니다.
 - **한 번에 한 기획서** — 산출물이 repo 루트에 flat하게 쌓입니다. 여러 고객사를 동시에 다루지 않습니다.
 - **계약서의 금액·법적 조항·기간은 읽지 않습니다** — 오직 "무엇을 개발해야 하는가"만 봅니다.
 - 시안은 **정적 HTML 목업**입니다. 더미 데이터는 실제 길이·개수와 비슷하게 채우지만 백엔드는 없습니다.

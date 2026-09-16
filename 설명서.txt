@@ -157,7 +157,11 @@
    - README.md 신설, .gitignore 로 .claude/_* 마커 파일 제외.
 
   ┌─ [상시 전제]  Windows / 인코딩 / PowerShell 의존성 ─────────────────────────┐
-   - 훅은 전부 PowerShell(.ps1) + win32 전제. macOS/Linux로 옮기면 훅을 재작성해야 함.
+   - 훅은 전부 PowerShell(.ps1) + win32 전제. settings.json이 `powershell`로 호출하는데
+     macOS/Linux의 PowerShell Core는 `pwsh`라서, 그대로 두면 훅이 뜨지 않는다.
+     단 훅이 없어도 파이프라인은 돈다 — main이 AGENT.md 절차를 직접 따르기 때문.
+     잃는 것은 (1) 턴 끝 자동 연결(대신 "계속"이라고 말해주면 됨) (2) 완주 게이트.
+     훅까지 쓰려면 pwsh 설치 + settings.json의 powershell → pwsh 교체 + 경로·인코딩 손질.
    - 마커·_autopilot_stage 는 ascii로 읽고 쓴다.
    - 한글·공백이 들어간 PDF 파일명을 셸에서 다룰 땐 따옴표 필수.
 
