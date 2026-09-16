@@ -102,6 +102,10 @@ body {
   background: var(--canvas);
   font-feature-settings: "lnum" 1, "tnum" 0;
   -webkit-font-smoothing: antialiased;
+  /* 한글은 어절 단위로만 줄바꿈 — keep-all이 없으면 "자동/으로"처럼 단어 중간이 끊긴다.
+     overflow-wrap은 긴 URL·이메일이 컨테이너를 넘치지 않게 하는 안전장치. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 h1, h2, h3, h4 { margin: 0; font-weight: 700; color: var(--ink); }
