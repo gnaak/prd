@@ -59,7 +59,11 @@ elseif ($p -match '(^|[\\/])pages[\\/](user|admin)[\\/][^\\/]+\.html$') {
     }
 }
 elseif ($p -match '(^|[\\/])docs[\\/]index\.html$') {
-    if (-not (Test-Path '.claude/_docs_done')) {
+    # 잘린 출력에 마커만 붙는 걸 막는다 (Stop hook과 동일 기준: 4KB + </body>)
+    if ((Test-Path 'docs/index.html') -and (((Get-Item 'docs/index.html').Length -lt 4000) -or ((Get-Content 'docs/index.html' -Raw) -notmatch '</body>'))) {
+        $msg = '[자동 트리거] docs/index.html이 4KB 미만이거나 </body>가 없다 — 빈 스텁/잘린 출력이다. ".claude/_docs_done" 마커를 만들지 말고 docs-builder를 다시 호출해 4개 섹션(환경·기능 목록·페이지 맵·화면 시안)을 실제로 채워라.' + $caveat
+    }
+    elseif (-not (Test-Path '.claude/_docs_done')) {
         $msg = '[자동 트리거] 고객 공유 문서(docs/index.html)가 작성됐다. 내용이 01_FEAT/02_PAGE/pages와 일치하는지 훑은 뒤, New-Item -Path ".claude/_docs_done" -ItemType File -Force 로 마커를 생성하고, 사용자에게 최종 완료 보고를 하라 (만든 파일 수 / reviewer 통과 여부 / 남은 권고).' + $caveat
     }
 }

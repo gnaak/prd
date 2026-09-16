@@ -1,7 +1,7 @@
 ================================================================================
  설명서 — 계약서 → HTML 화면정의 자동화 키트
 ================================================================================
- 작성일: 2026-06-30 / 개정: 2026-09-16 (다크 베젤 모바일 프레임 + 공개용 샘플 계약서)
+ 작성일: 2026-06-30 / 개정: 2026-09-17 (규격 단일화 + 게이트 사각지대 차단)
  범위: 프로젝트 전체 검토 + 사용법 + 동작 설명 + 예상 문제와 대처
  같이 볼 것: README.md (개요), 동작방식.txt (흐름도), CLAUDE.md (산출물 규격), AGENT.md (오케스트레이션 룰)
 --------------------------------------------------------------------------------
@@ -26,8 +26,10 @@
 
   [규격·지침 — 사람이 읽는 source of truth]
    README.md      프로젝트 개요 + 빠른 시작 (공개 repo 첫 화면)
-   CLAUDE.md      각 단계 산출물의 형식·디자인 규칙 (가장 권위 있는 문서)
-   DESIGN.md      Notion 톤 디자인 토큰 (색·라운드·그림자·타이포) + 모바일 디바이스 프레임 스펙
+   CLAUDE.md      각 단계 산출물의 형식·절차 규칙 + 무엇을 언제 쓰는가 (파이프라인 권위 문서)
+   DESIGN.md      디자인 치수의 유일한 출처 — 색·타이포·라운드·그림자 토큰,
+                  버튼 5종 스펙(### Buttons), 모바일 디바이스 프레임.
+                  숫자가 CLAUDE.md·에이전트 정의와 갈리면 항상 DESIGN.md가 이긴다.
    AGENT.md       main 오케스트레이터의 단계별 실행 룰 + 마커 프로토콜
 
   [자동화 키트 — Claude가 실행]
@@ -103,6 +105,10 @@
   (6) ★ 3단계 완료 판정은 "파일 개수"가 아니라 "파일 내용"이다:
       02_PAGE.md "파일" 컬럼의 모든 페이지가 존재 + 400B 이상 + common.css import
       여야 통과. 빈 <html></html> 스텁이나 표에 없는 고아 파일로는 못 넘어간다.
+      컬럼 밖 산출물 3개도 같은 방식으로 본다 (P#이 아니라서 컬럼 대조가 못 잡는 사각지대):
+        pages/index.html  허브   400B 이상 + common.css import
+        common.css               2KB 이상 + :root 있음 + 주석 짝 맞음 + '**/' 없음
+        docs/index.html          4KB 이상 + </body> 있음 (마커가 있어도 미달이면 미완료)
   (7) 무한루프 방지: 같은 단계에서 연속 스톨이 상한(단발 8 / 양산·검토 20)에
       도달하면 안전밸브가 autopilot 을 강제 해제하고 상황을 보고한다.
 
@@ -126,6 +132,8 @@
      → 과거 실제 사고: exemplar 포함 5장이 빈 <html></html> 스텁인 채 "개수"만
        채워져 delivered 로 완주한 적이 있다. 지금은 파일별 내용 검사(빈 스텁·
        common.css import)와 P#↔파일 1:1 대조(파일 컬럼·고아 감지)가 이를 차단한다.
+       2026-09-17 개정에서 그 검사가 안 닿던 사각지대(허브·common.css·docs)까지
+       덮었다 — 셋 다 "파일" 컬럼에 없어서 존재 여부만 보던 자리였다.
 
 
 ■ 5. 변경 이력
@@ -155,6 +163,19 @@
    - 실제 고객사 산출물 제거 → 가상의 샘플 계약서(contract/sample-contract.pdf)로 교체,
      그걸로 파이프라인을 완주한 데모 산출물을 함께 수록.
    - README.md 신설, .gitignore 로 .claude/_* 마커 파일 제외.
+
+  [2026-09-17] 규격 단일화 + 게이트 사각지대 차단
+   - 버튼 치수의 single source of truth를 DESIGN.md "### Buttons"로 일원화.
+     button-outline / button-ghost / Button sizing 항목을 DESIGN.md에 신설하고,
+     CLAUDE.md 버튼 표와 ui-foundation에서 치수 숫자를 제거해 "무엇을 언제 쓰는가"만 남김.
+     (btn-utility padding 이 DESIGN.md 4×14 vs CLAUDE.md·common.css 4×12 로 갈려
+      있던 실제 드리프트를 DESIGN.md 기준으로 확정 — common.css 를 4px 14px 로.)
+   - 완료 게이트가 못 보던 3곳을 내용 검사로 덮음: pages/index.html 허브,
+     common.css(:root·주석 짝·'**/' 검사), docs/index.html(4KB + </body>).
+     셋 다 02_PAGE.md "파일" 컬럼에 없어서 Test-Path 만 하던 자리였다.
+   - reviewer 의 2단계 체크리스트가 7컬럼(파일 누락)으로 낡아 있던 것을 8컬럼으로 수정.
+     파일 컬럼이 비어도 reviewer 가 통과시키고 Stop 훅이 뒤늦게 되돌리던 경로를 없앰.
+   - linter 에 허브·common.css 완성도 검사 항목 추가.
 
   ┌─ [상시 전제]  Windows / 인코딩 / PowerShell 의존성 ─────────────────────────┐
    - 훅은 전부 PowerShell(.ps1) + win32 전제. settings.json이 `powershell`로 호출하는데
@@ -189,6 +210,13 @@
      # 실제 파일 + 크기 (400B 미만이면 빈 스텁 = 미완성):
      Get-ChildItem pages\user,pages\admin -Filter *.html | Select-Object Name,Length
 
+  "파일 컬럼" 밖 산출물 3종 점검 (게이트가 개별로 보는 자리):
+     Get-Item pages\index.html,pages\assets\css\common.css,docs\index.html | Select-Object Name,Length
+     # 기준: 허브 400B+ / common.css 2KB+ / docs 4KB+
+     # common.css 주석 짝 확인 (다르면 :root 가 통째로 죽어 있다):
+     $c = Get-Content pages\assets\css\common.css -Raw
+     ([regex]::Matches($c,'/\*')).Count; ([regex]::Matches($c,'\*/')).Count; $c -match '\*\*/'
+
   훅이 멈췄을 때: powershell 실행정책/경로 확인
      - settings.json 의 훅은 -ExecutionPolicy Bypass 로 호출되므로 정책 문제는 드묾.
      - .ps1 파일 경로(.claude/hooks/*.ps1)가 repo 루트 기준 상대경로임에 유의
@@ -208,6 +236,14 @@
   - sub-agent의 model frontmatter를 바꿔도 CLAUDE_CODE_SUBAGENT_MODEL 이 설정돼
     있으면 무시된다 — 그 환경변수는 절대 켜지 말 것.
   - reviewer는 read-only여야 한다(수정은 main 몫). tools에 Write를 주지 말 것.
+  - 단계 산출물의 "규격"을 바꾸면 그걸 검사하는 쪽(reviewer 체크리스트 / linter 항목 /
+    훅 판정)까지 같이 고친다. 규격만 고치고 검사기를 두면 게이트는 통과하는데 규칙은
+    안 지켜진 상태가 조용히 굳는다 (실제로 02_PAGE "파일" 컬럼이 그렇게 어긋나 있었다).
+  - 디자인 치수(padding·radius·색)는 DESIGN.md "### Buttons" / "Border Radius Scale" /
+    "Mobile Device Frame"에만 적는다. CLAUDE.md·에이전트 정의에 숫자를 복사하지 말 것 —
+    갈리면 항상 DESIGN.md가 이긴다.
+  - 새 산출물 파일을 추가하면 그게 02_PAGE.md "파일" 컬럼에 잡히는지 확인한다.
+    안 잡히는 파일(허브·CSS·docs 류)은 게이트에 개별 내용 검사를 직접 추가해야 한다.
 
 ================================================================================
  (끝)

@@ -168,12 +168,19 @@
            ├─ foundation 미비               → foundation "3단계 ui-foundation 하라"
            │    (common.css + index.html + user exemplar 1장 + admin exemplar 1장
            │     전부 있어야 통과 — 재빌드 후 exemplar 누락돼도 여기서 잡힘)
+           │    ★ 허브·CSS도 존재가 아니라 내용으로 본다 (둘은 "파일" 컬럼에 없어서
+           │      아래 미완성 검사가 영영 안 보는 사각지대):
+           │        index.html  = 400B 이상 + common.css import
+           │        common.css  = 2KB 이상 + :root 있음 + 주석 짝 맞음 + '**/' 없음
+           │      (주석 안 글롭 '**/'가 주석을 조기 종료시켜 :root가 통째로 죽은 사고)
            ├─ 미완성 페이지 있음             → build-{done}-of-{expected}
            │    ★ 미완성 = "파일" 컬럼의 기대 파일 중 (없음 / 400B 미만 스텁 /
            │      common.css 미import) 인 것. 개수 비교가 아니라 파일별 내용 검사.
            ├─ 고아 페이지 있음               → orphans   "표에 없는 파일 — 표에 넣거나 지워라"
            ├─ _reviewed_stage3 없음         → review3   "linter → reviewer → 마커 생성"
-           ├─ _docs_done 없음               → docs      "docs-builder → 마커 생성"
+           ├─ _docs_done 없음 OR docs 미완성 → docs      "docs-builder → 마커 생성"
+           │    (docs/index.html이 4KB 미만이거나 </body> 없으면 마커가 있어도 미완료 —
+           │     마커는 main이 만들므로, 잘린 문서에 마커만 붙는 걸 막는다)
            └─ 전부 충족                     → _autopilot/_count/_stage 제거 + 종료 허용 ✅
         │
         └─ 진행도 기반 스톨 카운터 (전부 충족이 아닌 경우):
@@ -189,6 +196,9 @@
      카운터가 리셋된다 → 페이지가 아무리 많아도 정상 진행이면 안전밸브에 안 걸린다.
    ※ 핵심 2: 완료 판정이 "내용 기반"이라, 빈 스텁을 만들어 개수만 채우는 방식으로는
      게이트를 통과할 수 없다 (과거 exemplar 2장이 빈 채로 delivered 된 사고의 재발 방지).
+     이 검사는 "파일" 컬럼의 P# 페이지뿐 아니라 컬럼 밖 산출물 3개 — 허브 index.html,
+     common.css, docs/index.html — 에도 걸린다. 셋 다 P#이 아니라서 컬럼 대조로는
+     절대 안 잡히는 사각지대였다.
 
 
 [4] PostToolUse 훅 마커 무효화 규칙 (check-stage.ps1)
@@ -204,7 +214,9 @@
      └─ 아직 검토 전(양산 중)               → 마커 제거 없이, "파일" 컬럼의 기대 파일이
                                               전부 완성(빈 스텁 아님 + common.css import)
                                               됐을 때만 "linter+reviewer 하라" 주입
-   docs/index.html → (_docs_done 없을 때만) "_docs_done + 최종보고" 주입
+   docs/index.html
+     ├─ 4KB 미만 또는 </body> 없음 (잘린 출력) → "마커 만들지 말고 다시 작성하라" 주입
+     └─ 그 외 (_docs_done 없을 때만)          → "_docs_done + 최종보고" 주입
 
    ※ expected(기대 파일)는 02_PAGE.md 표의 "파일" 컬럼 값(user/xxx.html · admin/xxx.html)
      그 자체다. URL을 파일명으로 추측 변환하지 않는다.

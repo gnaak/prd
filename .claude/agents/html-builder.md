@@ -28,7 +28,7 @@ model: sonnet
 - `common.css` 상대경로 import + Lucide 스크립트 + 하단 `lucide.createIcons()` — exemplar와 동일하게
 - 그라데이션 ❌ / 진한 드롭섀도 ❌ / 이모지 ❌ / 액센트는 `#0075de`만
 - 사용자 페이지 = `.mobile-stage > .mobile-frame(다크 베젤) > .m-screen > (.m-status → .m-header → .m-content → .m-tabbar → .m-home)` 구조를 exemplar에서 **그대로 복사**. 프레임 클래스의 크기·색·radius를 인라인으로 재정의 ❌. 상태바(`.m-status`)와 홈 인디케이터(`.m-home`)는 스플래시·로그인에도 항상 유지, 헤더·탭바만 페이지 성격에 따라 생략. 내부 스크롤은 `.m-content`만 / 관리자 페이지 = PC 폭 + 사이드바
-- 밀도: body 14px, 버튼 padding 8~10×16~18 — 거대 UI 금지
+- 밀도: body 14px, 기본 버튼 padding 8~10×16~18 — 거대 UI 금지. **버튼 치수를 인라인으로 주지 말고 common.css 클래스(`btn-utility` 등)를 그대로 쓴다** (치수 출처는 DESIGN.md `### Buttons` 하나)
 - **죽은 버튼 금지**: 모든 버튼·탭·칩·리스트 항목이 다음 중 하나를 가짐
   - 페이지 이동: `02_PAGE.md`의 "다음 페이지" P#로 실제 링크 (`location.href` / `<a href>`) — **링크 대상은 그 P#의 `파일` 칸 값으로 만든다** (URL을 추측 변환하지 말 것). 같은 타겟이면 같은 폴더(`xxx.html`), user↔admin을 건너면 `../admin/xxx.html` / `../user/xxx.html`
   - 상태 토글: `active` 클래스 토글

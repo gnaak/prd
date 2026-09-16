@@ -15,7 +15,8 @@ model: haiku
 - **기대 파일 1:1 대조**: 02_PAGE.md `파일` 컬럼의 모든 항목이 실제로 존재하는가 (누락 = 차단)
 - **고아 파일**: 디스크의 user/admin html 중 `파일` 컬럼에 없는 것 (드리프트 — 차단)
 - **빈 스텁 검사**: 각 html 파일을 Read해 `<html></html>` 한 줄이거나 400B 미만이거나 `</body>`가 없으면 **미완성**으로 차단 (과거 exemplar가 빈 채로 통과한 사고의 핵심 — 반드시 본다)
-- `pages/index.html` 허브 존재하는가
+- `pages/index.html` 허브 — 존재 + **내용까지** 확인 (400B 미만이거나 `</body>` 없거나 `common.css` 미import면 차단). 허브는 `파일` 컬럼에 없어서 위 1:1 대조가 잡지 못하는 사각지대다
+- `pages/assets/css/common.css` — 2KB 미만이거나 `:root` 블록이 없으면 차단 (아래 1b의 주석 검사와 함께 본다)
 - `02_PAGE.md`에 `파일` 컬럼 자체가 없으면 그 사실을 차단으로 보고 (page-mapper가 먼저 갱신해야 함)
 
 ### 1b. CSS 주석 무결성 (`pages/assets/css/common.css` + 각 html의 `<style>`)

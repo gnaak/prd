@@ -168,12 +168,12 @@ input, select, textarea { font-family: inherit; }
 .btn-secondary { background: var(--surface); color: var(--ink); border-radius: var(--r-full); box-shadow: var(--shadow-1); }
 .btn-secondary:hover { background: var(--canvas); }
 
-/* 카드 안 secondary 액션 — hairline + r-md, 9×16 */
+/* 카드 안 secondary 액션 — hairline + r-md (DESIGN.md button-outline) */
 .btn-outline { background: var(--surface); color: var(--ink); border-color: var(--hairline); padding: 9px 16px; }
 .btn-outline:hover { background: var(--canvas); }
 
-/* 작은 인라인 액션 — hairline + r-md, 4×12 */
-.btn-utility { background: var(--surface); color: var(--ink); border-color: var(--hairline); padding: 4px 12px; font-size: 13px; }
+/* 작은 인라인 액션 — hairline + r-md (DESIGN.md button-utility) */
+.btn-utility { background: var(--surface); color: var(--ink); border-color: var(--hairline); padding: 4px 14px; font-size: 13px; }
 .btn-utility:hover { background: var(--canvas); }
 .btn-utility.active { border-color: var(--ink); font-weight: 600; }
 .btn-utility .lucide { width: 14px; height: 14px; }

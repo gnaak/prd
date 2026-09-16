@@ -19,7 +19,7 @@ model: opus
 
 1. **`pages/assets/css/common.css`** — 이미 존재하면 DESIGN.md와 비교해 갱신, 없으면 신규 작성:
    - `:root` CSS 변수로 DESIGN.md 토큰 전부 매핑 (`--canvas: #f6f5f4`, `--primary: #0075de`, `--hairline: #e6e6e6`, ink 4단계, radius 스케일, layered shadow 등)
-   - 버튼 variants 5종: `btn-primary`(파란 pill) / `btn-secondary`(흰 pill + shadow-1) / `btn-outline`(hairline + r-md, 9×16) / `btn-utility`(hairline + r-md, 4×12) / `btn-ghost`(무배경, hover 시 canvas)
+   - 버튼 variants 5종 `btn-primary` / `btn-secondary` / `btn-outline` / `btn-utility` / `btn-ghost` + 사이즈 모디파이어(`btn-md`·`btn-sm`·`btn-lg`) — **치수는 DESIGN.md `### Buttons`를 그대로 옮긴다.** 여기(또는 CLAUDE.md)에 적힌 숫자를 쓰지 말 것. padding·radius·색이 갈리면 항상 DESIGN.md가 이긴다
    - **모바일 디바이스 프레임 (다크 베젤 폰)** — CLAUDE.md "모바일 디바이스 프레임" 트리와 DESIGN.md "Mobile Device Frame" 표를 그대로 CSS로 옮긴다:
      - `.mobile-stage` height:100vh · flex center · canvas 배경 · padding 24px · overflow hidden
      - `.mobile-frame` 376×736 · `max-height: calc(100vh - 48px)` · padding 8px · `border-radius: 40px` · `background: var(--bezel)` (#1b1d22) · `box-shadow: var(--shadow-device)` (0 24px 50px -28px rgba(0,0,0,.5)) · display:flex

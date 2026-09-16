@@ -149,13 +149,15 @@ prd/
 
 ### 버튼 variants (common.css)
 
-| 클래스 | 용도 | 형태 |
+> **치수(padding·radius·색)는 여기 적지 않는다.** 5종의 정확한 스펙은 `DESIGN.md`의 `### Buttons`가 유일한 출처다 (`button-primary` / `button-secondary` / `button-outline` / `button-utility` / `button-ghost` + Button sizing). 아래 표는 **무엇을 언제 쓰는가**만 정한다.
+
+| 클래스 | 용도 | 성격 |
 |--------|------|------|
-| `btn-primary` | 주 CTA, 1순위 액션 | 파란 pill (`#0075de` + `r-full`) |
-| `btn-secondary` | 보조 CTA (hero 페어용) | 흰 pill + shadow-1 |
-| `btn-outline` | 카드 안 secondary 액션 (예: 프로필 수정) | 흰 + hairline 보더 + `r-md`, padding 9×16 |
-| `btn-utility` | 작은 인라인 액션 (헤더 액션, 페이지네이션) | 흰 + hairline + `r-md`, padding 4×12 |
-| `btn-ghost` | 강조 최소 액션 (로그아웃 등) | 무배경, padding 9×16, hover 시 canvas |
+| `btn-primary` | 주 CTA, 1순위 액션 | 파란 pill — 페이지당 하나 |
+| `btn-secondary` | 보조 CTA (hero 페어용) | 흰 pill |
+| `btn-outline` | 카드 안 secondary 액션 (예: 프로필 수정) | 흰 + hairline 보더 |
+| `btn-utility` | 작은 인라인 액션 (헤더 액션, 페이지네이션) | 흰 + hairline, 더 타이트 |
+| `btn-ghost` | 강조 최소 액션 (로그아웃 등) | 무배경 |
 
 **선택 기준**:
 - 페이지에 한 번 등장하는 메인 CTA → `btn-primary`

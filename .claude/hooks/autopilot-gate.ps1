@@ -22,6 +22,27 @@ function Test-PageComplete([string]$path) {
     return ((Get-Content $path -Raw) -match 'assets/css/common\.css')
 }
 
+# ---- common.css 건전성 ----
+# 존재만으로는 부족하다. 토큰 블록(:root)이 살아 있어야 하고 주석 짝이 맞아야 한다.
+# 실제 사고: 주석 안에 글롭 'pages/**/*.html'을 적었더니 '**/'가 주석을 조기 종료시켜
+#            뒤따르는 :root 블록 전체가 무효 규칙으로 날아갔다(파일 크기는 정상이라 안 잡혔음).
+function Test-CssHealthy([string]$path) {
+    if (-not (Test-Path $path)) { return $false }
+    if ((Get-Item $path).Length -lt 2000) { return $false }
+    $css = Get-Content $path -Raw
+    if ($css -notmatch ':root') { return $false }
+    if ($css -match '\*\*/') { return $false }
+    return (([regex]::Matches($css, '/\*')).Count -eq ([regex]::Matches($css, '\*/')).Count)
+}
+
+# ---- docs/index.html 완성도 ----
+# _docs_done 마커는 main이 만든다 — 잘린 문서에 마커만 붙어 완주 보고가 나가는 걸 막는다.
+function Test-DocsComplete([string]$path) {
+    if (-not (Test-Path $path)) { return $false }
+    if ((Get-Item $path).Length -lt 4000) { return $false }
+    return ((Get-Content $path -Raw) -match '</body>')
+}
+
 # ---- 파이프라인 상태 판정 (앞 단계부터) ----
 # $next   = main에게 줄 한국어 지시
 # $stage  = 진전 감지용 ascii 태그 (단계가 바뀌면 카운터 리셋)
@@ -77,8 +98,10 @@ else {
     }
     $orphans = @($actualRel | Where-Object { $expectedFiles -notcontains $_ })
 
-    # foundation = css + 허브 + 사용자 exemplar 1장 + 관리자 exemplar 1장이 모두 존재 (재빌드 시 exemplar 누락 방지)
-    $hasFoundation = (Test-Path 'pages/assets/css/common.css') -and (Test-Path 'pages/index.html') -and `
+    # foundation = css + 허브 + 사용자 exemplar 1장 + 관리자 exemplar 1장 (재빌드 시 exemplar 누락 방지)
+    # 허브와 css는 02_PAGE.md '파일' 컬럼에 없어서 아래 $incomplete 검사가 영영 보지 않는 사각지대다.
+    # 존재(Test-Path)만 보면 빈 스텁 허브가 파이프라인을 그대로 완주한다 — 반드시 내용으로 판정한다.
+    $hasFoundation = (Test-CssHealthy 'pages/assets/css/common.css') -and (Test-PageComplete 'pages/index.html') -and `
     (@(Get-ChildItem 'pages/user' -Filter '*.html' -ErrorAction SilentlyContinue).Count -gt 0) -and `
     (@(Get-ChildItem 'pages/admin' -Filter '*.html' -ErrorAction SilentlyContinue).Count -gt 0)
 
@@ -88,7 +111,7 @@ else {
     }
     elseif (-not $hasFoundation) {
         $stage = 'foundation'
-        $next = "3단계 기반: Task(subagent_type=`"ui-foundation`")로 pages/assets/css/common.css + pages/index.html 허브 + 사용자/관리자 exemplar 페이지를 생성하라. exemplar(홈/대시보드)가 빈 <html></html> 스텁이면 안 된다 — 반환 전 각 파일을 Read로 확인하라."
+        $next = "3단계 기반: Task(subagent_type=`"ui-foundation`")로 pages/assets/css/common.css + pages/index.html 허브 + 사용자/관리자 exemplar 페이지를 생성하라. 4개 파일 중 하나라도 빈 <html></html> 스텁이거나, common.css가 2KB 미만/:root 없음/주석 짝 안 맞음(글롭 '**/'가 주석을 조기 종료)이면 미완성으로 친다 — 파일 1개 = Write 1회로 나눠 쓰고, 반환 전 각 파일을 Read로 확인하라."
     }
     elseif ($incomplete.Count -gt 0) {
         # 한 장이라도 완성되면 $done 이 바뀌어 $stage 가 바뀌므로 양산 중엔 스톨로 안 친다
@@ -105,9 +128,9 @@ else {
         $stage = 'review3'
         $next = "3단계 검토: (1) Task(subagent_type=`"linter`")로 pages/ 기계적 검사 → 위반(빈 파일/깨진 링크 포함) 수정, (2) reviewer로 전체 검토 → 반영, (3) `".claude/_reviewed_stage3`" 마커 생성. (전 페이지가 비어있지 않고 common.css를 import함은 게이트가 이미 보장한다.)"
     }
-    elseif (-not (Test-Path '.claude/_docs_done')) {
+    elseif (-not (Test-Path '.claude/_docs_done') -or -not (Test-DocsComplete 'docs/index.html')) {
         $stage = 'docs'
-        $next = "마무리: Task(subagent_type=`"docs-builder`")로 docs/index.html을 생성/갱신하고, 확인 후 `".claude/_docs_done`" 마커를 생성하고 사용자에게 최종 완료 보고를 하라."
+        $next = "마무리: Task(subagent_type=`"docs-builder`")로 docs/index.html을 생성/갱신하고, 확인 후 `".claude/_docs_done`" 마커를 생성하고 사용자에게 최종 완료 보고를 하라. 문서가 4KB 미만이거나 </body>가 없으면 잘린 출력이므로 마커가 있어도 미완료로 친다 — 그 경우 docs-builder를 다시 호출해 채워라."
     }
     else {
         # 전부 완료 — autopilot 해제하고 종료 허용

@@ -163,6 +163,14 @@ Product screenshots are framed in rounded `{rounded.lg}` / `{rounded.xl}` wells,
 **`button-utility`** — Nav / plan-select button
 - White surface `{colors.surface}`, text `{colors.ink}`, type `{typography.button}`, tighter `{rounded.md}` (8px), padding `4px 14px`, 1px `{colors.hairline}` border. Used for the nav CTA and pricing plan-select buttons where the marketing pill would be too large.
 
+**`button-outline`** — In-card secondary action
+- White surface `{colors.surface}`, `{colors.ink}` text, type `{typography.button}`, `{rounded.md}` (8px), padding `9px 16px`, 1px `{colors.hairline}` border. The roomier sibling of `button-utility`: used for secondary actions sitting *inside* a card ("프로필 수정", "추가"), where the tight utility padding would look cramped against card body text.
+
+**`button-ghost`** — Lowest-emphasis action
+- No fill, no border, `{colors.ink-secondary}` text, type `{typography.button}`, padding `9px 16px`. Hover fills with `{colors.canvas}` and darkens text to `{colors.ink}`. For actions that must stay reachable but never draw the eye ("로그아웃", "취소").
+
+**Button sizing** — base padding `8px 18px`; modifiers `-md` `10px 18px`, `-sm` `6px 12px` at 13px, `-lg` a fixed 48px height for the single main action on a mobile screen. 48px is the ceiling — nothing goes larger, including voice/mic controls.
+
 **`button-icon-circular`** — Carousel / media control
 - Circular `{rounded.full}` control with a translucent `rgba(0,0,0,0.05)` fill and `{colors.on-primary}` glyph, used for slide and play/pause controls; applies a `scale(0.9)` press transform.
 
