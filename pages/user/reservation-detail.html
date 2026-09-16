@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P10 예약 상세 — 모두라운지 예약</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 예약 상세 고유 스타일 (프레임·헤더는 common.css 클래스만 사용) ── */
+    .qr-box.sm { width: 120px; height: 120px; }
+    .qr-box.sm .lucide { width: 84px; height: 84px; }
+  </style>
+</head>
+<body>
+  <div class="mobile-stage">
+    <div class="mobile-frame">
+      <div class="m-screen">
+
+        <!-- 상태바 -->
+        <div class="m-status">
+          <span>9:41</span>
+          <span class="m-status-icons">
+            <i data-lucide="signal"></i>
+            <i data-lucide="wifi"></i>
+            <i data-lucide="battery-full"></i>
+          </span>
+        </div>
+
+        <!-- 헤더: 좌 뒤로 / 제목 / 우 더보기 -->
+        <header class="m-header">
+          <button class="icon-btn" onclick="location.href='my-reservations.html'" aria-label="뒤로">
+            <i data-lucide="arrow-left"></i>
+          </button>
+          <span class="m-title" id="pageTitle">예약 상세</span>
+          <div class="m-header-actions">
+            <button class="icon-btn mode-room" id="moreBtn" aria-label="더보기">
+              <i data-lucide="more-horizontal"></i>
+            </button>
+          </div>
+        </header>
+
+        <!-- 본문 -->
+        <div class="m-content canvas">
+
+          <!-- 상태 + QR + 예약 정보 (회의실) -->
+          <div class="card mb-16 mode-room">
+            <div class="row-between mb-16">
+              <span class="badge badge-upcoming" id="statusBadge">예정</span>
+              <span class="text-sm muted tabular">R-261014-0031</span>
+            </div>
+
+            <div class="qr-box sm mb-16">
+              <i data-lucide="qr-code"></i>
+            </div>
+
+            <hr class="divider mb-16">
+
+            <dl class="kv">
+              <dt>공간</dt><dd>성수 A 회의실(4인) · 3층 A구역</dd>
+              <dt>일시</dt><dd>10/14(수) 14:00–15:00 · 1시간</dd>
+              <dt>목적</dt><dd>주간 회의</dd>
+              <dt>참석 인원</dt><dd>3명 — 박서연, 김민지, 이준호</dd>
+              <dt>크레딧</dt><dd>20 크레딧</dd>
+              <dt>예약일</dt><dd>10/12(월) 09:41</dd>
+            </dl>
+          </div>
+
+          <!-- 상태 + QR + 좌석 정보 (자율좌석) -->
+          <div class="card mb-16 mode-seat hidden">
+            <div class="row-between mb-16">
+              <span class="badge badge-live" id="seatStatusBadge">이용 중</span>
+              <h3 class="tabular">B-17</h3>
+            </div>
+
+            <div class="qr-box sm mb-16">
+              <i data-lucide="qr-code"></i>
+            </div>
+
+            <hr class="divider mb-16">
+
+            <dl class="kv">
+              <dt>구역</dt><dd>성수 2층 B구역</dd>
+              <dt>좌석</dt><dd>B-17</dd>
+              <dt>배정 시각</dt><dd>09:12</dd>
+              <dt>이용 종료</dt><dd>22:00 (자동 반납)</dd>
+              <dt>지점</dt><dd>성수</dd>
+              <dt>크레딧</dt><dd>무료(멤버십 포함)</dd>
+            </dl>
+          </div>
+
+          <!-- 변경·취소 안내 (회의실) -->
+          <div class="card card-soft mb-16 mode-room">
+            <div class="row" style="align-items:flex-start;">
+              <i data-lucide="info" style="color:var(--ink-muted);"></i>
+              <p class="text-sm secondary">지금 체크인할 수 있어요 · 14:15에 노쇼 판정</p>
+            </div>
+          </div>
+
+          <!-- 자율좌석 안내 -->
+          <div class="card card-soft mb-16 mode-seat hidden">
+            <div class="row" style="align-items:flex-start;">
+              <i data-lucide="info" style="color:var(--ink-muted);"></i>
+              <p class="text-sm secondary">자율좌석은 배정 즉시 이용이 시작돼요 · 반납하면 즉시 다른 회원이 사용할 수 있어요 · 22:00에 자동 반납됩니다</p>
+            </div>
+          </div>
+
+          <!-- 액션 (회의실 전용 — 자율좌석은 시간 개념이 없어 숨김) -->
+          <div class="stack-sm mb-16 mode-room">
+            <button class="btn btn-outline btn-block" id="changeBtn" onclick="location.href='reserve.html'">
+              <i data-lucide="calendar-clock"></i>시간 변경
+            </button>
+            <button class="btn btn-outline btn-block" id="cancelBtn">
+              <i data-lucide="x-circle"></i>예약 취소
+            </button>
+          </div>
+
+          <!-- 지점 안내 -->
+          <h2 class="section-title mb-8">지점 안내</h2>
+          <div class="card card-flush list mb-16">
+            <div class="list-item">
+              <i data-lucide="map-pin" style="color:var(--ink-muted);"></i>
+              <div>
+                <div class="text-sm secondary fw-600">성수</div>
+                <div class="caption mt-4">서울 성동구 연무장길 12</div>
+              </div>
+            </div>
+            <div class="list-item">
+              <i data-lucide="clock" style="color:var(--ink-muted);"></i>
+              <span class="text-sm secondary">평일 08:00–22:00</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 하단 고정 CTA: 체크인 / 좌석 반납 -->
+        <div class="m-footer">
+          <button class="btn btn-primary btn-block btn-lg mode-room" id="checkinBtn">
+            <i data-lucide="scan-line"></i>체크인
+          </button>
+          <button class="btn btn-primary btn-block btn-lg mode-seat hidden" id="returnSeatBtn">
+            <i data-lucide="log-out"></i>좌석 반납
+          </button>
+        </div>
+
+        <!-- 홈 인디케이터 -->
+        <div class="m-home"></div>
+
+        <!-- 더보기 액션 바텀시트 -->
+        <div class="sheet-backdrop" id="backdrop"></div>
+        <div class="sheet" id="actionSheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <h3>더보기</h3>
+            <button class="icon-btn sm" data-close aria-label="닫기"><i data-lucide="x"></i></button>
+          </div>
+          <div class="sheet-body">
+            <div class="card card-flush list">
+              <button class="list-item link" id="shareAttendeesBtn">
+                <i data-lucide="share-2" style="color:var(--ink-muted);"></i>
+                <span class="grow">참석자에게 공유</span>
+              </button>
+              <button class="list-item link" id="cancelFromSheetBtn">
+                <i data-lucide="x-circle" style="color:var(--ink-muted);"></i>
+                <span class="grow">예약 취소</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 예약 취소 확인 바텀시트 -->
+        <div class="sheet" id="cancelSheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <h3>예약 취소</h3>
+            <button class="icon-btn sm" data-close aria-label="닫기"><i data-lucide="x"></i></button>
+          </div>
+          <div class="sheet-body">
+            <p class="text-sm secondary mb-16" style="line-height:1.6;">예약을 취소할까요? 시작 1시간 전이라 노쇼 처리 없이 취소돼요</p>
+            <div class="field">
+              <label>취소 사유</label>
+              <div class="segment block" id="reasonSeg">
+                <button type="button" class="active" data-reason="schedule">일정 변경</button>
+                <button type="button" data-reason="dup">중복 예약</button>
+                <button type="button" data-reason="mind">단순 변심</button>
+                <button type="button" data-reason="etc">기타</button>
+              </div>
+            </div>
+          </div>
+          <div class="sheet-foot">
+            <button class="btn btn-primary btn-block" id="confirmCancelBtn">취소하기</button>
+          </div>
+        </div>
+
+        <!-- 좌석 반납 확인 바텀시트 -->
+        <div class="sheet" id="returnSheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <h3>좌석 반납</h3>
+            <button class="icon-btn sm" data-close aria-label="닫기"><i data-lucide="x"></i></button>
+          </div>
+          <div class="sheet-body">
+            <p class="text-sm secondary" style="line-height:1.6;">좌석 B-17을 반납할까요? 반납 후에는 다시 배정받아야 해요</p>
+          </div>
+          <div class="sheet-foot">
+            <button class="btn btn-primary btn-block" id="confirmReturnBtn">반납</button>
+          </div>
+        </div>
+
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    const $ = (id) => document.getElementById(id);
+    const backdrop = $('backdrop');
+    const toastEl = $('toast');
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    /* 모드 분기: 회의실(기본) / 자율좌석(?type=seat) */
+    const isSeatMode = new URLSearchParams(location.search).get('type') === 'seat';
+    if (isSeatMode) {
+      document.querySelectorAll('.mode-room').forEach((el) => el.classList.add('hidden'));
+      document.querySelectorAll('.mode-seat').forEach((el) => el.classList.remove('hidden'));
+      $('pageTitle').textContent = '좌석 이용 중';
+    }
+
+    /* 시트 열기/닫기 */
+    function openSheet(id) { backdrop.classList.add('open'); $(id).classList.add('open'); }
+    function closeSheets() {
+      backdrop.classList.remove('open');
+      document.querySelectorAll('.sheet.open').forEach((s) => s.classList.remove('open'));
+    }
+    backdrop.addEventListener('click', closeSheets);
+    document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeSheets));
+
+    /* 더보기 액션 시트 */
+    $('moreBtn').addEventListener('click', () => openSheet('actionSheet'));
+    $('shareAttendeesBtn').addEventListener('click', () => {
+      closeSheets();
+      toast('참석자에게 공유 링크를 복사했어요');
+    });
+    $('cancelFromSheetBtn').addEventListener('click', () => {
+      closeSheets();
+      setTimeout(() => openSheet('cancelSheet'), 200);
+    });
+
+    /* 본문 예약 취소 버튼 */
+    $('cancelBtn').addEventListener('click', () => {
+      if ($('cancelBtn').disabled) return;
+      openSheet('cancelSheet');
+    });
+
+    /* 취소 사유 세그먼트 */
+    document.querySelectorAll('#reasonSeg button').forEach((b) => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('#reasonSeg button').forEach((x) => x.classList.remove('active'));
+        b.classList.add('active');
+      });
+    });
+
+    /* 취소 확정 */
+    let cancelled = false;
+    $('confirmCancelBtn').addEventListener('click', () => {
+      closeSheets();
+      cancelled = true;
+
+      const badge = $('statusBadge');
+      badge.classList.remove('badge-upcoming', 'badge-live');
+      badge.classList.add('badge-cancel');
+      badge.textContent = '취소';
+
+      $('changeBtn').disabled = true;
+      $('cancelBtn').disabled = true;
+
+      const checkinBtn = $('checkinBtn');
+      checkinBtn.disabled = true;
+      checkinBtn.textContent = '취소된 예약이에요';
+
+      toast('예약이 취소됐어요');
+    });
+
+    /* 체크인 */
+    $('checkinBtn').addEventListener('click', () => {
+      if (cancelled) return;
+      const btn = $('checkinBtn');
+      btn.innerHTML = '<i data-lucide="check"></i>체크인 완료';
+      btn.disabled = true;
+      lucide.createIcons();
+
+      const badge = $('statusBadge');
+      badge.classList.remove('badge-upcoming');
+      badge.classList.add('badge-live');
+      badge.textContent = '진행';
+
+      toast('체크인이 완료됐어요');
+    });
+
+    /* 좌석 반납 */
+    $('returnSeatBtn').addEventListener('click', () => {
+      if ($('returnSeatBtn').disabled) return;
+      openSheet('returnSheet');
+    });
+    $('confirmReturnBtn').addEventListener('click', () => {
+      closeSheets();
+
+      const badge = $('seatStatusBadge');
+      badge.classList.remove('badge-live');
+      badge.classList.add('badge-done');
+      badge.textContent = '반납 완료';
+
+      const btn = $('returnSeatBtn');
+      btn.innerHTML = '<i data-lucide="check"></i>반납 완료';
+      btn.disabled = true;
+      lucide.createIcons();
+
+      toast('좌석을 반납했어요');
+    });
+  </script>
+</body>
+</html>

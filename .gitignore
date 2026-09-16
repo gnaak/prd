@@ -1,0 +1,7 @@
+# autopilot 진행 마커 (빌드 중에만 존재하는 상태 파일)
+.claude/_*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+desktop.ini

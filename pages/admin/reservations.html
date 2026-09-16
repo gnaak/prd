@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P16 예약 관리 — 모두라운지 관리자</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 예약 관리 고유 스타일 (사이드바·헤더·드로어·모달은 common.css 클래스만 사용) ── */
+    .table td.mono { font-variant-numeric: tabular-nums; color: var(--ink-secondary); }
+    .wait-cell { color: var(--ink-faint); }
+    .faint-cell { color: var(--ink-faint); }
+    .filter-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .chips .fw-600 { margin-left: 2px; color: inherit; opacity: .7; }
+    .history-box { border: 1px solid var(--hairline); border-radius: var(--r-lg); overflow: hidden; }
+    .history-box .list-item:first-child { border-top: 0; }
+    .drawer-body h4 { margin-bottom: 8px; }
+    #cancelReason.invalid { border-color: var(--hairline-strong); }
+    @media (max-width: 1240px) {
+      .drawer { width: 100vw; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin">
+
+    <!-- 좌측 GNB (전 관리자 페이지 공통) -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-mark"><i data-lucide="building-2"></i></span>
+        <div>모두라운지<small>운영자 콘솔</small></div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+        <a class="nav-item" href="spaces.html"><i data-lucide="door-open"></i>공간 관리</a>
+        <a class="nav-item active" href="reservations.html"><i data-lucide="calendar-check"></i>예약 관리</a>
+        <a class="nav-item" href="members.html"><i data-lucide="users"></i>회원 관리</a>
+        <a class="nav-item" href="notices.html"><i data-lucide="megaphone"></i>공지 관리</a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="sidebar-user">
+          <span class="avatar">김</span>
+          <div class="who">
+            <div class="name">김하늘</div>
+            <div class="role">전체 관리자 · 3개 지점</div>
+          </div>
+          <button class="icon-btn sm" onclick="location.href='login.html'" title="로그아웃" aria-label="로그아웃"><i data-lucide="log-out"></i></button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+
+      <!-- 페이지 헤더 -->
+      <header class="admin-header">
+        <h1>예약 관리</h1>
+        <span class="sub">2026-10-14 (수) · 오늘 47건</span>
+        <div class="admin-header-actions">
+          <button class="btn btn-utility" id="exportBtn"><i data-lucide="download"></i>내보내기</button>
+        </div>
+      </header>
+
+      <div class="admin-body">
+
+        <!-- 필터 툴바 -->
+        <div class="card">
+          <div class="filter-row">
+            <div class="filter-controls">
+              <div class="segment" id="periodSeg">
+                <button class="active" data-period="오늘">오늘</button>
+                <button data-period="이번 주">이번 주</button>
+                <button data-period="이번 달">이번 달</button>
+                <button data-period="직접">직접</button>
+              </div>
+              <select class="select" id="branchSelect" style="width:112px;">
+                <option value="all">전체 지점</option>
+                <option value="seongsu">성수</option>
+                <option value="hongdae">홍대</option>
+                <option value="pangyo">판교</option>
+              </select>
+              <select class="select" id="spaceSelect" style="width:172px;"></select>
+            </div>
+            <div class="input-icon" style="width:260px;">
+              <i data-lucide="search"></i>
+              <input class="input" id="searchInput" placeholder="회원명 또는 예약번호 검색">
+            </div>
+          </div>
+          <div class="chips" id="statusChips">
+            <button class="chip active" data-status="all">전체<span class="fw-600">47</span></button>
+            <button class="chip" data-status="upcoming">예정<span class="fw-600">12</span></button>
+            <button class="chip" data-status="live">진행<span class="fw-600">8</span></button>
+            <button class="chip" data-status="done">완료<span class="fw-600">21</span></button>
+            <button class="chip" data-status="cancel">취소<span class="fw-600">3</span></button>
+            <button class="chip" data-status="noshow">노쇼<span class="fw-600">3</span></button>
+          </div>
+        </div>
+
+        <!-- 예약 목록 -->
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <div>
+              <h3 class="card-title">예약 목록 <span class="faint fw-500" id="resultCount">12</span></h3>
+              <p class="card-desc">필터·검색 결과 · 행을 클릭하면 상세 드로어가 열립니다</p>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="table" id="resvTable">
+              <thead>
+                <tr>
+                  <th>예약 번호</th>
+                  <th>지점</th>
+                  <th>공간</th>
+                  <th>회원</th>
+                  <th>일시</th>
+                  <th>체크인</th>
+                  <th>상태</th>
+                  <th>액션</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-link" data-id="R-261014-0027" data-branch="seongsu" data-space="성수 B 회의실" data-status="live">
+                  <td class="mono">R-261014-0027</td>
+                  <td>성수</td>
+                  <td class="cell-strong">성수 B 회의실(8인)</td>
+                  <td>이준호<span class="cell-sub">코넥트파트너스</span></td>
+                  <td class="mono">13:30 – 15:30</td>
+                  <td class="mono checkin-cell">13:27</td>
+                  <td class="badge-cell"><span class="badge badge-live">진행</span></td>
+                  <td><button class="btn btn-utility detail-btn">상세</button></td>
+                </tr>
+                <tr class="row-link" data-id="R-261014-0025" data-branch="pangyo" data-space="판교 세미나룸" data-status="live">
+                  <td class="mono">R-261014-0025</td>
+                  <td>판교</td>
+                  <td class="cell-strong">판교 세미나룸(12인)</td>
+                  <td>정우진<span class="cell-sub">넥스트웨이브</span></td>
+                  <td class="mono">13:00 – 16:00</td>
+                  <td class="mono checkin-cell">12:58</td>
+                  <td class="badge-cell"><span class="badge badge-live">진행</span></td>
+                  <td><button class="btn btn-utility detail-btn">상세</button></td>
+                </tr>
+                <tr class="row-link" data-id="R-261014-0029" data-branch="hongdae" data-space="홍대 C 회의실" data-status="live">
+                  <td class="mono">R-261014-0029</td>
+                  <td>홍대</td>
+                  <td class="cell-strong">홍대 C 회의실(6인)</td>
+                  <td>최민아<span class="cell-sub">개인</span></td>
+                  <td class="mono">14:00 – 14:30</td>
+                  <td class="mono checkin-cell">13:56</td>
+                  <td class="badge-cell"><span class="badge badge-live">진행</span></td>
+                  <td><button class="btn btn-utility detail-btn">상세</button></td>
+                </tr>
+                <tr class="row-link" data-id="R-261014-0031" data-branch="seongsu" data-space="성수 A 회의실" data-status="upcoming">
+                  <td class="mono">R-261014-0031</td>
+                  <td>성수</td>
+                  <td class="cell-strong">성수 A 회의실(4인)</td>
+                  <td>박서연<span class="cell-sub">주식회사 브릿지랩</span></td>
+                  <td class="mono">14:00 – 15:00</td>
+                  <td class="wait-cell checkin-cell">대기<span class="cell-sub">14:15 노쇼 판정</span></td>
+                  <td class="badge-cell"><span class="badge badge-upcoming">예정</span></td>
+                  <td><button class="btn btn-utility detail-btn">상세</button></td>
+                </tr>
+                <tr class="row-link" data-id="R-261014-0030" data-branch="hongdae" data-space="홍대 A 회의실" data-status="upcoming">
+                  <td class="mono">R-261014-0030</td>
+                  <td>홍대</td>
+                  <td class="cell-strong">홍대 A 회의실(4인)</td>
+                  <td>한지민<span class="cell-sub">스튜디오 온</span></td>
+                  <td class="mono">14:00 – 15:00</td>
+                  <td class="wait-cell checkin-cell">대기<span class="cell-sub">14:15 노쇼 판정</span></td>
+                  <td class="badge-cell"><span class="badge badge-upcoming">예정</span></td>
+                  <td><button class="btn btn-utility detail-btn">상세</button></td>
+                </tr>
+                <tr class="row-link" data-id="R-261014-0022" data-branch="pangyo" data-space="판교 B 회의실" data-status="live">
+                  <td class="mono">R-261014-0022</td>
+                  <td>판교</td>
+                  <td class="cell-strong">판교 B 회의실(8인)</td>
+                  <td>오세훈<span class="cell-sub">개인</span></td>
+                  <td class="mono">12:30 – 14:30</td>
+                  <td class="mono checkin-cell">12:31</td>
+                  <td class="badge-cell"><span class="badge badge-live">진행</span></td>
+                  <td><button class="btn btn-utility detail-btn">상세</button></td>
+                </tr>
+                <tr class="row-link" data-id="R-261014-0028" data-branch="seongsu" data-space="성수 D 회의실" data-status="live">
+                  <td class="mono">R-261014-0028</td>
+                  <td>성수</td>
+                  <td class="cell-strong">성수 D 회의실(2인)</td>
+                  <td>김도윤<span class="cell-sub">주식회사 브릿지랩</span></td>
+                  <td class="mono">13:30 – 14:30</td>
+                  <td class="mono checkin-cell">13:34</td>
+                  <td class="badge-cell"><span class="badge badge-live">진행</span></td>
+                  <td><button class="btn btn-utility detail-btn">상세</button></td>
+                </tr>
+                <tr class="row-link" data-id="R-261014-0026" data-branch="hongdae" data-space="홍대 라운지룸" data-status="live">
+                  <td class="mono">R-261014-0026</td>
+                  <td>홍대</td>
+                  <td class="cell-strong">홍대 라운지룸(10인)</td>
+                  <td>윤서아<span class="cell-sub">그로우랩</span></td>
+                  <td class="mono">13:00 – 15:00</td>
+                  <td class="mono checkin-cell">13:02</td>
+                  <td class="badge-cell"><span class="badge badge-live">진행</span></td>
+                  <td><button class="btn btn-utility detail-btn">상세</button></td>
+                </tr>
+                <tr class="row-link" data-id="R-261014-0019" data-branch="seongsu" data-space="성수 A 회의실" data-status="done">
+                  <td class="mono">R-261014-0019</td>
+                  <td>성수</td>
+                  <td class="cell-strong">성수 A 회의실(4인)</td>
+                  <td>장하은<span class="cell-sub">브이웍스</span></td>
+                  <td class="mono">09:30 – 10:30</td>
+                  <td class="mono checkin-cell">09:31</td>
+                  <td class="badge-cell"><span class="badge badge-done">완료</span></td>
+                  <td><button class="btn btn-utility detail-btn">상세</button></td>
+                </tr>
+                <tr class="row-link" data-id="R-261014-0015" data-branch="hongdae" data-space="홍대 B 회의실" data-status="done">
+                  <td class="mono">R-261014-0015</td>
+                  <td>홍대</td>
+                  <td class="cell-strong">홍대 B 회의실(6인)</td>
+                  <td>서지훈<span class="cell-sub">개인</span></td>
+                  <td class="mono">08:00 – 09:00</td>
+                  <td class="mono checkin-cell">08:02</td>
+                  <td class="badge-cell"><span class="badge badge-done">완료</span></td>
+                  <td><button class="btn btn-utility detail-btn">상세</button></td>
+                </tr>
+                <tr class="row-link" data-id="R-261014-0011" data-branch="pangyo" data-space="판교 A 회의실" data-status="cancel">
+                  <td class="mono">R-261014-0011</td>
+                  <td>판교</td>
+                  <td class="cell-strong">판교 A 회의실(4인)</td>
+                  <td>김나윤<span class="cell-sub">라이트하우스</span></td>
+                  <td class="mono">07:30 – 08:30</td>
+                  <td class="faint-cell checkin-cell">-</td>
+                  <td class="badge-cell"><span class="badge badge-cancel">취소</span></td>
+                  <td><button class="btn btn-utility detail-btn">상세</button></td>
+                </tr>
+                <tr class="row-link" data-id="R-261014-0007" data-branch="seongsu" data-space="성수 C 회의실" data-status="noshow">
+                  <td class="mono">R-261014-0007</td>
+                  <td>성수</td>
+                  <td class="cell-strong">성수 C 회의실(6인)</td>
+                  <td>문승우<span class="cell-sub">개인</span></td>
+                  <td class="mono">07:00 – 08:00</td>
+                  <td class="faint-cell checkin-cell">미체크인</td>
+                  <td class="badge-cell"><span class="badge badge-noshow">노쇼</span></td>
+                  <td><button class="btn btn-utility detail-btn">상세</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-foot">
+            <span id="tableFootNote">표시 12건 · 전체 47건 중 1페이지</span>
+            <div class="pagination" id="pagination">
+              <button class="btn btn-utility active" data-page="1">1</button>
+              <button class="btn btn-utility" data-page="2">2</button>
+              <button class="btn btn-utility" data-page="3">3</button>
+              <button class="btn btn-utility" data-page="4">4</button>
+              <button class="btn btn-utility" id="pageNext" aria-label="다음 페이지"><i data-lucide="chevron-right"></i></button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- 우측 상세 드로어 (F25·F26 흡수) -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">
+      <div class="row gap-8">
+        <span class="mono fw-600" id="drawerResId">R-261014-0031</span>
+        <span class="badge badge-upcoming" id="drawerStatusBadge">예정</span>
+      </div>
+      <button class="icon-btn" id="drawerClose" aria-label="닫기"><i data-lucide="x"></i></button>
+    </div>
+    <div class="drawer-body">
+      <dl class="kv">
+        <dt>회원</dt><dd id="kvMember">박서연 · 주식회사 브릿지랩 · 010-4821-7732</dd>
+        <dt>공간</dt><dd id="kvSpace">성수 A 회의실(4인)</dd>
+        <dt>일시</dt><dd id="kvDatetime">10/14(수) 14:00–15:00</dd>
+        <dt>목적</dt><dd id="kvPurpose">주간 회의 · 3명</dd>
+        <dt>참석자</dt><dd id="kvAttendees">김민지, 이준호</dd>
+        <dt>체크인</dt><dd id="kvCheckin">대기 · 14:15 노쇼 자동 판정 예정</dd>
+        <dt>예약일</dt><dd id="kvBooked">10/12 09:41</dd>
+        <dt>크레딧</dt><dd id="kvCredit">20</dd>
+      </dl>
+
+      <div>
+        <h4>처리 이력</h4>
+        <div class="list history-box" id="drawerHistory"></div>
+      </div>
+
+      <div>
+        <h4>액션</h4>
+        <div class="stack-sm">
+          <button class="btn btn-outline w-full" id="cancelBtn"><i data-lucide="ban"></i>강제 취소</button>
+          <button class="btn btn-outline w-full" id="noshowBtn"><i data-lucide="user-x"></i>노쇼 처리</button>
+          <a class="link" id="memberLink" href="member-detail.html" style="display:inline-flex; align-items:center; gap:4px; padding:4px 0;">회원 상세 보기<i data-lucide="chevron-right" style="width:14px;height:14px;"></i></a>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 강제 취소 모달 -->
+  <div class="modal-backdrop" id="cancelModalBackdrop">
+    <div class="modal">
+      <div>
+        <h3>예약 강제 취소</h3>
+        <p class="card-desc mt-4" id="cancelModalTarget">R-261014-0031 · 박서연</p>
+      </div>
+      <div class="field">
+        <label>취소 사유 <span class="primary">*</span></label>
+        <textarea class="textarea" id="cancelReason" placeholder="예: 공간 점검(수전 누수)으로 인한 운영자 강제 취소"></textarea>
+        <span class="hint">이용자에게 취소 알림이 발송됩니다.</span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="cancelModalClose">닫기</button>
+        <button class="btn btn-primary" id="cancelModalSubmit" disabled>취소 처리</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast fixed" id="toast"></div>
+
+  <script>
+    lucide.createIcons();
+    const $ = (id) => document.getElementById(id);
+
+    /* ── 더미 예약 상세 데이터 (표 12행 = 오늘 47건 중 일부) — 공간명·인원·크레딧은 spaces.html 로스터와 동일 단가(시간당 크레딧 × 이용 시간)로 산출 ── */
+    const RESV = {
+      'R-261014-0027': { status: 'live', member: '이준호', org: '코넥트파트너스', phone: '010-2231-8845', space: '성수 B 회의실(8인)', datetime: '10/14(수) 13:30–15:30', purpose: '파트너사 미팅 · 6명', attendees: '김도영, 오하늘', checkin: '13:27 체크인 완료', booked: '10/11 15:20', credit: 64,
+        history: [['예약 생성', '10/11 15:20'], ['확정 알림 발송', '10/11 15:20'], ['리마인더 발송', '13:20'], ['체크인', '13:27']] },
+      'R-261014-0025': { status: 'live', member: '정우진', org: '넥스트웨이브', phone: '010-5567-2210', space: '판교 세미나룸(12인)', datetime: '10/14(수) 13:00–16:00', purpose: '분기 워크숍 · 10명', attendees: '박지수 외 8명', checkin: '12:58 체크인 완료', booked: '10/09 11:05', credit: 144,
+        history: [['예약 생성', '10/09 11:05'], ['확정 알림 발송', '10/09 11:05'], ['리마인더 발송', '12:50'], ['체크인', '12:58']] },
+      'R-261014-0029': { status: 'live', member: '최민아', org: '개인', phone: '010-7743-1198', space: '홍대 C 회의실(6인)', datetime: '10/14(수) 14:00–14:30', purpose: '1:1 면접 · 2명', attendees: '-', checkin: '13:56 체크인 완료', booked: '10/13 20:11', credit: 13,
+        history: [['예약 생성', '10/13 20:11'], ['확정 알림 발송', '10/13 20:11'], ['리마인더 발송', '13:50'], ['체크인', '13:56']] },
+      'R-261014-0031': { status: 'upcoming', member: '박서연', org: '주식회사 브릿지랩', phone: '010-4821-7732', space: '성수 A 회의실(4인)', datetime: '10/14(수) 14:00–15:00', purpose: '주간 회의 · 3명', attendees: '김민지, 이준호', checkin: '대기 · 14:15 노쇼 자동 판정 예정', booked: '10/12 09:41', credit: 20,
+        history: [['예약 생성', '10/12 09:41'], ['확정 알림 발송', '10/12 09:41'], ['리마인더 발송', '13:50']] },
+      'R-261014-0030': { status: 'upcoming', member: '한지민', org: '스튜디오 온', phone: '010-9982-3341', space: '홍대 A 회의실(4인)', datetime: '10/14(수) 14:00–15:00', purpose: '콘텐츠 기획 회의 · 3명', attendees: '오세라', checkin: '대기 · 14:15 노쇼 자동 판정 예정', booked: '10/12 18:02', credit: 20,
+        history: [['예약 생성', '10/12 18:02'], ['확정 알림 발송', '10/12 18:02'], ['리마인더 발송', '13:50']] },
+      'R-261014-0022': { status: 'live', member: '오세훈', org: '개인', phone: '010-1123-9087', space: '판교 B 회의실(8인)', datetime: '10/14(수) 12:30–14:30', purpose: '스터디 그룹 · 5명', attendees: '이하람 외 3명', checkin: '12:31 체크인 완료', booked: '10/10 09:14', credit: 64,
+        history: [['예약 생성', '10/10 09:14'], ['확정 알림 발송', '10/10 09:14'], ['리마인더 발송', '12:20'], ['체크인', '12:31']] },
+      'R-261014-0028': { status: 'live', member: '김도윤', org: '주식회사 브릿지랩', phone: '010-6634-7729', space: '성수 D 회의실(2인)', datetime: '10/14(수) 13:30–14:30', purpose: '1:1 코칭 · 2명', attendees: '-', checkin: '13:34 체크인 완료', booked: '10/13 08:47', credit: 12,
+        history: [['예약 생성', '10/13 08:47'], ['확정 알림 발송', '10/13 08:47'], ['리마인더 발송', '13:20'], ['체크인', '13:34']] },
+      'R-261014-0026': { status: 'live', member: '윤서아', org: '그로우랩', phone: '010-3345-6602', space: '홍대 라운지룸(10인)', datetime: '10/14(수) 13:00–15:00', purpose: '신규 입사자 교육 · 8명', attendees: '팀원 7명', checkin: '13:02 체크인 완료', booked: '10/08 14:30', credit: 80,
+        history: [['예약 생성', '10/08 14:30'], ['확정 알림 발송', '10/08 14:30'], ['리마인더 발송', '12:50'], ['체크인', '13:02']] },
+      'R-261014-0019': { status: 'done', member: '장하은', org: '브이웍스', phone: '010-2298-4471', space: '성수 A 회의실(4인)', datetime: '10/14(수) 09:30–10:30', purpose: '주간 회의 · 4명', attendees: '이현수, 조민경', checkin: '09:31 체크인 · 10:29 종료', booked: '10/07 10:02', credit: 20,
+        history: [['예약 생성', '10/07 10:02'], ['확정 알림 발송', '10/07 10:02'], ['리마인더 발송', '09:20'], ['체크인', '09:31'], ['이용 완료', '10:30']] },
+      'R-261014-0015': { status: 'done', member: '서지훈', org: '개인', phone: '010-8871-2245', space: '홍대 B 회의실(6인)', datetime: '10/14(수) 08:00–09:00', purpose: '면접 · 2명', attendees: '-', checkin: '08:02 체크인 · 09:00 종료', booked: '10/12 21:40', credit: 26,
+        history: [['예약 생성', '10/12 21:40'], ['확정 알림 발송', '10/12 21:40'], ['리마인더 발송', '07:50'], ['체크인', '08:02'], ['이용 완료', '09:00']] },
+      'R-261014-0011': { status: 'cancel', member: '김나윤', org: '라이트하우스', phone: '010-4456-7723', space: '판교 A 회의실(4인)', datetime: '10/14(수) 07:30–08:30', purpose: '주간 회의 · 3명', attendees: '박준영', checkin: '-', booked: '10/11 13:15', credit: 20,
+        history: [['예약 생성', '10/11 13:15'], ['확정 알림 발송', '10/11 13:15'], ['운영자 강제 취소 (사유: 공간 점검 · 수전 누수)', '07:05']] },
+      'R-261014-0007': { status: 'noshow', member: '문승우', org: '개인', phone: '010-9934-5510', space: '성수 C 회의실(6인)', datetime: '10/14(수) 07:00–08:00', purpose: '스터디 · 4명', attendees: '-', checkin: '미체크인', booked: '10/09 22:03', credit: 28,
+        history: [['예약 생성', '10/09 22:03'], ['확정 알림 발송', '10/09 22:03'], ['리마인더 발송', '06:50'], ['노쇼 자동 판정', '07:15']] },
+    };
+    const STATUS_MAP = {
+      upcoming: ['badge-upcoming', '예정'],
+      live: ['badge-live', '진행'],
+      done: ['badge-done', '완료'],
+      cancel: ['badge-cancel', '취소'],
+      noshow: ['badge-noshow', '노쇼'],
+    };
+    /* ── 지점별 공간 목록 — spaces.html 회의실 로스터(14실) 전체와 1:1 일치 ── */
+    const SPACES_BY_BRANCH = {
+      all: ['성수 A 회의실', '성수 B 회의실', '성수 C 회의실', '성수 D 회의실', '성수 E 회의실', '성수 세미나룸', '홍대 A 회의실', '홍대 B 회의실', '홍대 C 회의실', '홍대 D 회의실', '홍대 라운지룸', '판교 A 회의실', '판교 B 회의실', '판교 세미나룸'],
+      seongsu: ['성수 A 회의실', '성수 B 회의실', '성수 C 회의실', '성수 D 회의실', '성수 E 회의실', '성수 세미나룸'],
+      hongdae: ['홍대 A 회의실', '홍대 B 회의실', '홍대 C 회의실', '홍대 D 회의실', '홍대 라운지룸'],
+      pangyo: ['판교 A 회의실', '판교 B 회의실', '판교 세미나룸'],
+    };
+
+    const toastEl = $('toast');
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
+    }
+
+    /* ── 지점 → 공간 select 갱신 ── */
+    function populateSpaceSelect(branch) {
+      const sel = $('spaceSelect');
+      const list = SPACES_BY_BRANCH[branch] || SPACES_BY_BRANCH.all;
+      sel.innerHTML = '<option value="all">전체 공간</option>' + list.map(s => `<option value="${s}">${s}</option>`).join('');
+    }
+    populateSpaceSelect('all');
+
+    /* ── 필터 적용 (지점 · 공간 · 상태 칩 · 검색) ── */
+    let currentStatus = 'all';
+    function applyFilters() {
+      const branch = $('branchSelect').value;
+      const space = $('spaceSelect').value;
+      const q = $('searchInput').value.trim().toLowerCase();
+      let shown = 0;
+      document.querySelectorAll('#resvTable tbody tr').forEach(tr => {
+        const ok = (branch === 'all' || tr.dataset.branch === branch)
+          && (space === 'all' || tr.dataset.space === space)
+          && (currentStatus === 'all' || tr.dataset.status === currentStatus)
+          && (q === '' || tr.textContent.toLowerCase().includes(q));
+        tr.classList.toggle('hidden', !ok);
+        if (ok) shown++;
+      });
+      $('resultCount').textContent = shown;
+      $('tableFootNote').textContent = `표시 ${shown}건 · 전체 47건 중 1페이지`;
+    }
+
+    $('branchSelect').addEventListener('change', () => {
+      populateSpaceSelect($('branchSelect').value);
+      applyFilters();
+    });
+    $('spaceSelect').addEventListener('change', applyFilters);
+    $('searchInput').addEventListener('input', applyFilters);
+
+    document.querySelectorAll('#statusChips .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#statusChips .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentStatus = chip.dataset.status;
+        applyFilters();
+      });
+    });
+
+    /* ── 기간 세그먼트 (토글) ── */
+    document.querySelectorAll('#periodSeg button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#periodSeg button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        toast(`조회 기간: ${btn.dataset.period}`);
+      });
+    });
+
+    /* ── 페이지네이션 (토글, 목업이라 데이터는 동일 유지) ── */
+    const pageBtns = () => document.querySelectorAll('#pagination [data-page]');
+    pageBtns().forEach(btn => {
+      btn.addEventListener('click', () => {
+        pageBtns().forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        toast(`${btn.dataset.page}페이지로 이동`);
+      });
+    });
+    $('pageNext').addEventListener('click', () => {
+      const active = document.querySelector('#pagination [data-page].active');
+      let next = active ? parseInt(active.dataset.page, 10) + 1 : 1;
+      if (next > 4) next = 1;
+      const target = document.querySelector(`#pagination [data-page="${next}"]`);
+      if (target) target.click();
+    });
+
+    /* ── 내보내기 ── */
+    $('exportBtn').addEventListener('click', () => toast('예약 목록을 CSV로 내보냈습니다'));
+
+    /* ── 상세 드로어 ── */
+    let currentDrawerId = null;
+
+    function setBadge(el, status) {
+      const [cls, label] = STATUS_MAP[status];
+      el.className = 'badge ' + cls;
+      el.textContent = label;
+    }
+
+    function renderHistory(list) {
+      $('drawerHistory').innerHTML = list.map(([label, time]) =>
+        `<div class="list-item"><span class="grow">${label}</span><span class="caption mono">${time}</span></div>`
+      ).join('');
+    }
+
+    function updateActionButtons(status) {
+      const cancelable = status === 'upcoming' || status === 'live';
+      const noshowable = cancelable || status === 'noshow';
+      const cancelBtn = $('cancelBtn');
+      const noshowBtn = $('noshowBtn');
+      cancelBtn.disabled = !cancelable;
+      noshowBtn.disabled = !noshowable;
+      noshowBtn.innerHTML = `<i data-lucide="user-x"></i>${status === 'noshow' ? '노쇼 해제' : '노쇼 처리'}`;
+      lucide.createIcons();
+    }
+
+    function openDrawer(id) {
+      const r = RESV[id];
+      if (!r) return;
+      currentDrawerId = id;
+      $('drawerResId').textContent = id;
+      setBadge($('drawerStatusBadge'), r.status);
+      $('kvMember').textContent = `${r.member} · ${r.org} · ${r.phone}`;
+      $('kvSpace').textContent = r.space;
+      $('kvDatetime').textContent = r.datetime;
+      $('kvPurpose').textContent = r.purpose;
+      $('kvAttendees').textContent = r.attendees;
+      $('kvCheckin').textContent = r.checkin;
+      $('kvBooked').textContent = r.booked;
+      $('kvCredit').textContent = r.credit;
+      renderHistory(r.history);
+      updateActionButtons(r.status);
+      $('memberLink').href = 'member-detail.html?member=' + encodeURIComponent(r.member);
+      $('drawer').classList.add('open');
+      $('drawerBackdrop').classList.add('open');
+    }
+
+    function closeDrawer() {
+      $('drawer').classList.remove('open');
+      $('drawerBackdrop').classList.remove('open');
+    }
+
+    function syncTableRow(id) {
+      const r = RESV[id];
+      const tr = document.querySelector(`#resvTable tr[data-id="${id}"]`);
+      if (!tr || !r) return;
+      tr.dataset.status = r.status;
+      const [cls, label] = STATUS_MAP[r.status];
+      tr.querySelector('.badge-cell').innerHTML = `<span class="badge ${cls}">${label}</span>`;
+      const checkinCell = tr.querySelector('.checkin-cell');
+      if (checkinCell) {
+        checkinCell.className = 'checkin-cell';
+        if (r.status === 'cancel') { checkinCell.textContent = '-'; checkinCell.classList.add('faint-cell'); }
+        else if (r.status === 'noshow') { checkinCell.textContent = '미체크인'; checkinCell.classList.add('faint-cell'); }
+      }
+      applyFilters();
+    }
+
+    document.querySelectorAll('#resvTable tbody tr.row-link').forEach(tr => {
+      tr.addEventListener('click', () => openDrawer(tr.dataset.id));
+    });
+    document.querySelectorAll('.detail-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tr = btn.closest('tr');
+        openDrawer(tr.dataset.id);
+      });
+    });
+
+    $('drawerClose').addEventListener('click', closeDrawer);
+    $('drawerBackdrop').addEventListener('click', closeDrawer);
+
+    /* ── 강제 취소 (모달) ── */
+    function openCancelModal() {
+      const r = RESV[currentDrawerId];
+      $('cancelModalTarget').textContent = `${currentDrawerId} · ${r.member}`;
+      $('cancelReason').value = '';
+      $('cancelModalSubmit').disabled = true;
+      $('cancelModalBackdrop').classList.add('open');
+    }
+    function closeCancelModal() { $('cancelModalBackdrop').classList.remove('open'); }
+
+    $('cancelBtn').addEventListener('click', () => { if (!$('cancelBtn').disabled) openCancelModal(); });
+    $('cancelModalClose').addEventListener('click', closeCancelModal);
+    $('cancelModalBackdrop').addEventListener('click', (e) => { if (e.target === $('cancelModalBackdrop')) closeCancelModal(); });
+    $('cancelReason').addEventListener('input', () => {
+      $('cancelModalSubmit').disabled = $('cancelReason').value.trim().length === 0;
+    });
+    $('cancelModalSubmit').addEventListener('click', () => {
+      const reason = $('cancelReason').value.trim();
+      if (!reason) return;
+      const r = RESV[currentDrawerId];
+      r.status = 'cancel';
+      r.checkin = '-';
+      r.history.push([`운영자 강제 취소 (사유: ${reason})`, '14:12']);
+      closeCancelModal();
+      openDrawer(currentDrawerId);
+      syncTableRow(currentDrawerId);
+      toast('예약을 취소 처리했습니다');
+    });
+
+    /* ── 노쇼 수동 처리 · 해제 ── */
+    $('noshowBtn').addEventListener('click', () => {
+      if ($('noshowBtn').disabled) return;
+      const r = RESV[currentDrawerId];
+      if (r.status === 'noshow') {
+        r.status = 'upcoming';
+        r.checkin = '대기 · 15분 경과 시 노쇼 재판정';
+        r.history.push(['노쇼 해제 (예정으로 복귀)', '14:12']);
+        toast('노쇼를 해제했습니다');
+      } else {
+        r.status = 'noshow';
+        r.checkin = '미체크인';
+        r.history.push(['노쇼 수동 처리', '14:12']);
+        toast('노쇼로 처리했습니다');
+      }
+      openDrawer(currentDrawerId);
+      syncTableRow(currentDrawerId);
+    });
+
+    /* ── 초기 진입: 쿼리 없이 들어오면 목록만 표시, ?id= 로 넘어올 때만 해당 예약 드로어를 자동으로 엶
+       (대시보드·공간 관리의 행 클릭 링크가 이 페이지로 올 때 reservations.html?id=R-261014-0031 형태로 붙여줘야 함) ── */
+    const params = new URLSearchParams(location.search);
+    applyFilters();
+    const initialId = params.get('id');
+    if (initialId && RESV[initialId]) openDrawer(initialId);
+  </script>
+</body>
+</html>

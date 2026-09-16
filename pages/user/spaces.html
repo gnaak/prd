@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P5 공간 목록 — 모두라운지 예약</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 공간 목록 고유 스타일 (프레임·헤더·탭바는 common.css 클래스만 사용) ── */
+    .room-equip { display: flex; align-items: center; gap: 10px; }
+    .room-equip .lucide { width: 16px; height: 16px; color: var(--ink-muted); }
+
+    .filter-row-label { font-size: 13px; font-weight: 500; color: var(--ink-secondary); margin-bottom: 8px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; }
+    .toggle-row + .toggle-row { border-top: 1px solid var(--hairline); }
+    .toggle-row .text-sm { color: var(--ink-secondary); }
+  </style>
+</head>
+<body>
+  <div class="mobile-stage">
+    <div class="mobile-frame">
+      <div class="m-screen">
+
+        <!-- 상태바 -->
+        <div class="m-status">
+          <span>9:41</span>
+          <span class="m-status-icons">
+            <i data-lucide="signal"></i>
+            <i data-lucide="wifi"></i>
+            <i data-lucide="battery-full"></i>
+          </span>
+        </div>
+
+        <!-- 헤더 -->
+        <header class="m-header">
+          <span class="m-title">공간</span>
+          <div class="m-header-actions">
+            <button class="icon-btn" id="filterBtn" aria-label="필터"><i data-lucide="sliders-horizontal"></i></button>
+          </div>
+        </header>
+
+        <!-- 본문 -->
+        <div class="m-content canvas">
+
+          <!-- 지점 선택 (F9) -->
+          <div class="chips mb-16" id="branchChips">
+            <button class="chip active" data-branch="seongsu">성수</button>
+            <button class="chip" data-branch="hongdae">홍대</button>
+            <button class="chip" data-branch="pangyo">판교</button>
+          </div>
+
+          <!-- 세그먼트: 회의실 / 자율좌석 (F10 · F15) -->
+          <div class="segment block mb-16" id="typeSegment">
+            <button class="active" data-panel="room">회의실</button>
+            <button data-panel="seat">자율좌석</button>
+          </div>
+
+          <!-- 회의실 패널 -->
+          <div id="roomPanel">
+            <div class="chips mb-12" id="roomFilterChips">
+              <button class="chip filter-key active" data-key="all">전체</button>
+              <button class="chip filter-key" data-key="cap2">2인+</button>
+              <button class="chip filter-key" data-key="cap4">4인+</button>
+              <button class="chip filter-key" data-key="cap6">6인+</button>
+              <button class="chip filter-key" data-key="cap10">10인+</button>
+              <button class="chip filter-key" data-key="eqMonitor">모니터</button>
+              <button class="chip filter-key" data-key="eqWhiteboard">화이트보드</button>
+              <button class="chip filter-key" data-key="eqVideo">화상회의</button>
+              <button class="chip filter-key" data-key="availNow">지금 가능</button>
+            </div>
+            <div class="stack" id="roomList"></div>
+            <div class="empty hidden" id="roomEmpty">
+              <i data-lucide="search-x"></i>
+              <span>조건에 맞는 회의실이 없어요</span>
+              <button class="btn btn-utility mt-4" id="roomEmptyReset">필터 초기화</button>
+            </div>
+          </div>
+
+          <!-- 자율좌석 패널 -->
+          <div id="seatPanel" class="hidden">
+            <p class="caption mb-12">구역을 선택하면 시간대 지정 없이 당일 잔여 좌석 중 하나가 바로 배정돼요.</p>
+            <div class="stack" id="seatList"></div>
+          </div>
+
+        </div>
+
+        <!-- 하단 탭바 -->
+        <nav class="m-tabbar">
+          <a class="m-tab" href="home.html"><span class="tab-icon"><i data-lucide="house"></i></span>홈</a>
+          <a class="m-tab active" href="spaces.html"><span class="tab-icon"><i data-lucide="door-open"></i></span>공간</a>
+          <a class="m-tab" href="my-reservations.html"><span class="tab-icon"><i data-lucide="calendar-check"></i></span>내 예약</a>
+          <a class="m-tab" href="notifications.html"><span class="tab-icon"><i data-lucide="bell"></i><span class="tab-badge">2</span></span>알림</a>
+          <a class="m-tab" href="mypage.html"><span class="tab-icon"><i data-lucide="user"></i></span>마이</a>
+        </nav>
+
+        <!-- 홈 인디케이터 -->
+        <div class="m-home"></div>
+
+        <!-- 필터 바텀시트 -->
+        <div class="sheet-backdrop" id="backdrop"></div>
+        <div class="sheet" id="filterSheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <h3>필터</h3>
+            <button class="icon-btn sm" data-close aria-label="닫기"><i data-lucide="x"></i></button>
+          </div>
+          <div class="sheet-body">
+            <div class="mb-16">
+              <div class="filter-row-label">인원</div>
+              <div class="chips">
+                <button class="chip filter-key" data-key="cap2">2인+</button>
+                <button class="chip filter-key" data-key="cap4">4인+</button>
+                <button class="chip filter-key" data-key="cap6">6인+</button>
+                <button class="chip filter-key" data-key="cap10">10인+</button>
+              </div>
+            </div>
+            <div class="mb-16">
+              <div class="filter-row-label">장비</div>
+              <div class="toggle-row">
+                <span class="text-sm">모니터</span>
+                <button class="toggle filter-key" data-key="eqMonitor"></button>
+              </div>
+              <div class="toggle-row">
+                <span class="text-sm">화이트보드</span>
+                <button class="toggle filter-key" data-key="eqWhiteboard"></button>
+              </div>
+              <div class="toggle-row">
+                <span class="text-sm">화상회의</span>
+                <button class="toggle filter-key" data-key="eqVideo"></button>
+              </div>
+            </div>
+            <div class="filter-row-label">가능 여부</div>
+            <div class="toggle-row" style="border:0; padding-top:0;">
+              <span class="text-sm">지금 이용 가능한 회의실만</span>
+              <button class="toggle filter-key" data-key="availNow"></button>
+            </div>
+          </div>
+          <div class="sheet-foot">
+            <button class="btn btn-primary btn-block" id="filterApplyBtn">적용</button>
+          </div>
+        </div>
+
+        <!-- 자율좌석 즉시 배정 확인 바텀시트 -->
+        <div class="sheet" id="assignSheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <h3>좌석 즉시 배정</h3>
+            <button class="icon-btn sm" data-close aria-label="닫기"><i data-lucide="x"></i></button>
+          </div>
+          <div class="sheet-body">
+            <p class="text-sm secondary" id="assignText" style="line-height:1.6;"></p>
+          </div>
+          <div class="sheet-foot">
+            <button class="btn btn-primary btn-block" id="assignConfirmBtn">배정</button>
+          </div>
+        </div>
+
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    /* ── 더미 데이터 (관리자 공간 관리 표와 일치 — 성수 6실 / 홍대 5실 / 판교 3실, 좌석 120석/75석 배정) ── */
+    const EQUIP_ICON = { monitor: 'monitor', whiteboard: 'presentation', video: 'video' };
+    const CAP_VALUE = { cap2: 2, cap4: 4, cap6: 6, cap10: 10 };
+    const EQUIP_KEY = { eqMonitor: 'monitor', eqWhiteboard: 'whiteboard', eqVideo: 'video' };
+
+    const BRANCHES = {
+      seongsu: {
+        name: '성수',
+        rooms: [
+          // 박서연 본인 예약(14:00~15:00)이 지금 진행 중
+          { name: 'A 회의실(4인)', capacity: 4, floor: '3층 A구역', credit: 20, equipment: ['monitor', 'whiteboard'], status: 'inuse', statusText: '15:00까지 사용 중' },
+          // 다른 회원이 13:30~15:30 사용 중 (점검 아님)
+          { name: 'B 회의실(8인)', capacity: 8, floor: '3층 B구역', credit: 32, equipment: ['monitor', 'whiteboard', 'video'], status: 'inuse', statusText: '15:30까지 사용 중' },
+          { name: 'C 회의실(6인)', capacity: 6, floor: '4층 A구역', credit: 28, equipment: ['monitor', 'video'], status: 'available' },
+          { name: 'D 회의실(2인)', capacity: 2, floor: '2층 C구역', credit: 12, equipment: ['monitor'], status: 'available' },
+          { name: 'E 회의실(4인)', capacity: 4, floor: '4층 B구역', credit: 20, equipment: ['monitor', 'video'], status: 'available' },
+          { name: '세미나룸(12인)', capacity: 12, floor: '5층', credit: 48, equipment: ['monitor', 'whiteboard', 'video'], status: 'available' },
+        ],
+        zones: [
+          // 박서연이 오늘 09:12에 배정받아 이용 중인 좌석(B-17)이 있는 구역
+          { name: '2층 B구역', total: 20, remain: 6, mySeat: 'B-17', myUntil: '22:00' },
+          { name: '3층 C구역', total: 16, remain: 4 },
+          { name: '4층 D구역', total: 12, remain: 4 },
+        ],
+      },
+      hongdae: {
+        name: '홍대',
+        rooms: [
+          { name: 'A 회의실(4인)', capacity: 4, floor: '2층 A구역', credit: 20, equipment: ['monitor', 'whiteboard'], status: 'available' },
+          { name: 'B 회의실(6인)', capacity: 6, floor: '2층 B구역', credit: 26, equipment: ['monitor', 'video'], status: 'available' },
+          { name: 'C 회의실(6인)', capacity: 6, floor: '3층 A구역', credit: 26, equipment: ['monitor', 'whiteboard', 'video'], status: 'available' },
+          { name: 'D 회의실(2인)', capacity: 2, floor: '3층 B구역', credit: 12, equipment: ['monitor'], status: 'available' },
+          // 리모델링으로 비활성 — 관리자 공간 관리 표와 동일하게 이용 불가 처리
+          { name: '라운지룸(10인)', capacity: 10, floor: '4층', credit: 40, equipment: ['monitor', 'whiteboard', 'video'], status: 'inactive' },
+        ],
+        zones: [
+          { name: '2층 C구역', total: 18, remain: 8 },
+          { name: '3층 D구역', total: 14, remain: 6 },
+          { name: '4층 라운지', total: 8, remain: 4 },
+        ],
+      },
+      pangyo: {
+        name: '판교',
+        rooms: [
+          { name: 'A 회의실(4인)', capacity: 4, floor: '1층 A구역', credit: 20, equipment: ['monitor', 'whiteboard'], status: 'available' },
+          { name: 'B 회의실(8인)', capacity: 8, floor: '1층 B구역', credit: 32, equipment: ['monitor', 'whiteboard', 'video'], status: 'available' },
+          { name: '세미나룸(12인)', capacity: 12, floor: '2층', credit: 48, equipment: ['monitor', 'whiteboard', 'video'], status: 'available' },
+        ],
+        zones: [
+          { name: '2층 C구역', total: 20, remain: 8 },
+          { name: '3층 D구역', total: 12, remain: 5 },
+        ],
+      },
+    };
+
+    /* ── 상태 ── */
+    let branch = 'seongsu';
+    let panel = 'room';
+    const activeFilters = new Set();
+    let currentZone = null;
+
+    const $ = (id) => document.getElementById(id);
+    const backdrop = $('backdrop');
+    const toastEl = $('toast');
+    let toastTimer;
+
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    /* 시트 열기/닫기 */
+    function openSheet(id) { backdrop.classList.add('open'); $(id).classList.add('open'); }
+    function closeSheets() {
+      backdrop.classList.remove('open');
+      document.querySelectorAll('.sheet.open').forEach(s => s.classList.remove('open'));
+    }
+    backdrop.addEventListener('click', closeSheets);
+    document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
+    $('filterBtn').addEventListener('click', () => openSheet('filterSheet'));
+
+    /* 지점 전환 */
+    document.querySelectorAll('#branchChips .chip').forEach(c => c.addEventListener('click', () => {
+      branch = c.dataset.branch;
+      document.querySelectorAll('#branchChips .chip').forEach(x => x.classList.toggle('active', x === c));
+      toast(`${BRANCHES[branch].name} 지점으로 변경했어요`);
+      renderRooms();
+      renderZones();
+    }));
+
+    /* 세그먼트: 회의실 / 자율좌석 */
+    document.querySelectorAll('#typeSegment button').forEach(b => b.addEventListener('click', () => {
+      panel = b.dataset.panel;
+      document.querySelectorAll('#typeSegment button').forEach(x => x.classList.toggle('active', x === b));
+      $('roomPanel').classList.toggle('hidden', panel !== 'room');
+      $('seatPanel').classList.toggle('hidden', panel !== 'seat');
+    }));
+
+    /* 필터 (인라인 칩 + 시트 공통 — data-key 공유) */
+    function syncFilterUI() {
+      document.querySelectorAll('.filter-key').forEach(el => {
+        const key = el.dataset.key;
+        const active = key === 'all' ? activeFilters.size === 0 : activeFilters.has(key);
+        if (el.classList.contains('toggle')) el.classList.toggle('on', active);
+        else el.classList.toggle('active', active);
+      });
+    }
+    function toggleFilter(key) {
+      if (key === 'all') activeFilters.clear();
+      else activeFilters.has(key) ? activeFilters.delete(key) : activeFilters.add(key);
+      syncFilterUI();
+      renderRooms();
+    }
+    document.querySelectorAll('.filter-key').forEach(el => el.addEventListener('click', () => toggleFilter(el.dataset.key)));
+    $('filterApplyBtn').addEventListener('click', () => { closeSheets(); toast('필터를 적용했어요'); });
+    $('roomEmptyReset').addEventListener('click', () => toggleFilter('all'));
+
+    function passFilter(room) {
+      const capKeys = ['cap2', 'cap4', 'cap6', 'cap10'].filter(k => activeFilters.has(k));
+      if (capKeys.length) {
+        const capMin = Math.max(...capKeys.map(k => CAP_VALUE[k]));
+        if (room.capacity < capMin) return false;
+      }
+      const equipKeys = ['eqMonitor', 'eqWhiteboard', 'eqVideo'].filter(k => activeFilters.has(k));
+      for (const k of equipKeys) if (!room.equipment.includes(EQUIP_KEY[k])) return false;
+      if (activeFilters.has('availNow') && room.status !== 'available') return false;
+      return true;
+    }
+
+    function badgeHTML(room) {
+      if (room.status === 'available') return '<span class="badge badge-upcoming">이용 가능</span>';
+      if (room.status === 'inuse') return `<span class="badge badge-live">${room.statusText}</span>`;
+      if (room.status === 'inactive') return '<span class="badge badge-neutral">이용 불가</span>';
+      return '<span class="badge badge-ink">점검 중</span>';
+    }
+
+    function roomCardHTML(r) {
+      const icons = r.equipment.map(e => `<i data-lucide="${EQUIP_ICON[e]}"></i>`).join('');
+      return `
+        <div class="card card-link" onclick="location.href='space-detail.html'">
+          <div class="row-between mb-8">
+            ${badgeHTML(r)}
+            <span class="text-sm tabular secondary">${r.credit} 크레딧/시간</span>
+          </div>
+          <div class="row">
+            <div class="grow">
+              <h3>${r.name}</h3>
+              <p class="text-sm muted mt-4">${r.floor}</p>
+              <div class="room-equip mt-8">${icons}</div>
+            </div>
+            <i data-lucide="chevron-right" class="lucide chev faint" style="width:16px;height:16px;"></i>
+          </div>
+        </div>`;
+    }
+
+    function renderRooms() {
+      const rooms = BRANCHES[branch].rooms.filter(passFilter);
+      $('roomList').innerHTML = rooms.map(roomCardHTML).join('');
+      $('roomEmpty').classList.toggle('hidden', rooms.length > 0);
+      $('roomList').classList.toggle('hidden', rooms.length === 0);
+      lucide.createIcons();
+    }
+
+    function zoneCardHTML(z, idx) {
+      const used = z.total - z.remain;
+      const pct = Math.round((used / z.total) * 100);
+      const disabled = z.remain === 0;
+
+      if (z.mySeat) {
+        return `
+          <div class="card">
+            <div class="row-between mb-8">
+              <h3>${z.name}</h3>
+              <span class="text-sm tabular secondary">${z.remain} / ${z.total}석</span>
+            </div>
+            <div class="progress mb-4"><span style="width:${pct}%"></span></div>
+            <p class="caption mb-12">이용 중인 좌석 <strong>${z.mySeat}</strong> · ${z.myUntil}까지</p>
+            <button class="btn btn-outline btn-block" onclick="location.href='reservation-detail.html?type=seat'">내 좌석 보기</button>
+          </div>`;
+      }
+
+      return `
+        <div class="card">
+          <div class="row-between mb-8">
+            <h3>${z.name}</h3>
+            <span class="text-sm tabular secondary">${z.remain} / ${z.total}석</span>
+          </div>
+          <div class="progress mb-4"><span style="width:${pct}%"></span></div>
+          <p class="caption mb-12">${disabled ? '잔여 좌석이 없어요' : `잔여 ${z.remain}석 · ${pct}% 이용 중`}</p>
+          <button class="btn btn-primary btn-block" ${disabled ? 'disabled' : ''} onclick="openAssign(${idx})">즉시 배정</button>
+        </div>`;
+    }
+
+    function renderZones() {
+      const zones = BRANCHES[branch].zones;
+      $('seatList').innerHTML = zones.map(zoneCardHTML).join('');
+      lucide.createIcons();
+    }
+
+    function openAssign(idx) {
+      currentZone = BRANCHES[branch].zones[idx];
+      $('assignText').textContent = `${currentZone.name} 좌석을 배정할까요? 오늘 22:00까지 이용`;
+      openSheet('assignSheet');
+    }
+    $('assignConfirmBtn').addEventListener('click', () => { location.href = 'reservation-confirm.html?type=seat'; });
+
+    /* 초기화 */
+    syncFilterUI();
+    renderRooms();
+    renderZones();
+  </script>
+</body>
+</html>

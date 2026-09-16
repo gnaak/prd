@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P19 공지 관리 — 모두라운지 관리자</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 공지 관리 고유 스타일 (사이드바·헤더는 common.css 클래스만 사용) ── */
+    .notice-row { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
+    .toolbar-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .preview-card { position: sticky; top: 72px; }
+    .preview-notif { display: flex; align-items: flex-start; gap: 12px; }
+    .preview-notif .icon-tile { margin-top: 1px; }
+    .preview-notif-title { font-size: 14px; font-weight: 600; letter-spacing: -0.1px; color: var(--ink); }
+    .preview-notif-body { margin: 2px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-muted); }
+    .field-row { display: flex; gap: 12px; }
+    .field-row > .field { flex: 1; }
+    @media (max-width: 1240px) {
+      .notice-row { grid-template-columns: 1fr; }
+      .preview-card { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin">
+
+    <!-- 좌측 GNB (전 관리자 페이지 공통) -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-mark"><i data-lucide="building-2"></i></span>
+        <div>모두라운지<small>운영자 콘솔</small></div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+        <a class="nav-item" href="spaces.html"><i data-lucide="door-open"></i>공간 관리</a>
+        <a class="nav-item" href="reservations.html"><i data-lucide="calendar-check"></i>예약 관리</a>
+        <a class="nav-item" href="members.html"><i data-lucide="users"></i>회원 관리</a>
+        <a class="nav-item active" href="notices.html"><i data-lucide="megaphone"></i>공지 관리</a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="sidebar-user">
+          <span class="avatar">김</span>
+          <div class="who">
+            <div class="name">김하늘</div>
+            <div class="role">전체 관리자 · 3개 지점</div>
+          </div>
+          <button class="icon-btn sm" onclick="location.href='login.html'" title="로그아웃" aria-label="로그아웃"><i data-lucide="log-out"></i></button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+
+      <!-- 페이지 헤더 -->
+      <header class="admin-header">
+        <h1>공지 관리</h1>
+        <span class="sub" id="summarySub">노출 중 3 · 예약됨 1 · 종료 8</span>
+        <div class="admin-header-actions">
+          <button class="btn btn-primary" id="createBtn"><i data-lucide="plus"></i>공지 등록</button>
+        </div>
+      </header>
+
+      <div class="admin-body">
+        <div class="notice-row">
+
+          <!-- 좌: 표 -->
+          <div class="table-wrap">
+            <div class="table-toolbar">
+              <div class="toolbar-row" style="width:100%;">
+                <div class="segment" id="branchSeg">
+                  <button class="active" data-branch="all">전체</button>
+                  <button data-branch="seongsu">성수</button>
+                  <button data-branch="hongdae">홍대</button>
+                  <button data-branch="pangyo">판교</button>
+                </div>
+                <div class="chips" id="statusChips">
+                  <button class="chip active" data-status="all">전체</button>
+                  <button class="chip" data-status="live">노출 중</button>
+                  <button class="chip" data-status="upcoming">예약됨</button>
+                  <button class="chip" data-status="done">종료</button>
+                </div>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="table" id="noticeTable">
+                <thead>
+                  <tr>
+                    <th>제목</th>
+                    <th>지점</th>
+                    <th>노출 기간</th>
+                    <th>상태</th>
+                    <th>알림 발송</th>
+                    <th>액션</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="row-link selected" data-id="N101" data-branch="seongsu" data-status="live">
+                    <td class="cell-strong">10/18(토) 성수 3층 회의실 정기 점검 안내</td>
+                    <td><span class="tag">성수</span></td>
+                    <td class="mono">10.11 – 10.18</td>
+                    <td><span class="badge badge-live">노출 중</span></td>
+                    <td class="mono">10.11 09:02</td>
+                    <td>
+                      <div class="row gap-4">
+                        <button class="btn btn-utility edit-btn">수정</button>
+                        <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="row-link" data-id="N102" data-branch="hongdae" data-status="live">
+                    <td class="cell-strong">홍대 지점 주말 운영시간 변경 안내</td>
+                    <td><span class="tag">홍대</span></td>
+                    <td class="mono">10.09 – 10.31</td>
+                    <td><span class="badge badge-live">노출 중</span></td>
+                    <td class="mono">10.09 08:15</td>
+                    <td>
+                      <div class="row gap-4">
+                        <button class="btn btn-utility edit-btn">수정</button>
+                        <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="row-link" data-id="N103" data-branch="all" data-status="live">
+                    <td class="cell-strong">10월 신규 입주 법인 환영 · 커피 쿠폰 이벤트</td>
+                    <td><span class="tag">전체</span></td>
+                    <td class="mono">10.01 – 10.31</td>
+                    <td><span class="badge badge-live">노출 중</span></td>
+                    <td class="mono">10.01 09:00</td>
+                    <td>
+                      <div class="row gap-4">
+                        <button class="btn btn-utility edit-btn">수정</button>
+                        <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="row-link" data-id="N104" data-branch="all" data-status="upcoming">
+                    <td class="cell-strong">11월 정기 소독 및 공기청정 필터 교체 안내</td>
+                    <td><span class="tag">전체</span></td>
+                    <td class="mono">10.20 – 11.03</td>
+                    <td><span class="badge badge-upcoming">예약됨</span></td>
+                    <td class="faint">—</td>
+                    <td>
+                      <div class="row gap-4">
+                        <button class="btn btn-utility edit-btn">수정</button>
+                        <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="row-link" data-id="N105" data-branch="hongdae" data-status="done">
+                    <td class="cell-strong">홍대 지점 엘리베이터 정기 점검 안내</td>
+                    <td><span class="tag">홍대</span></td>
+                    <td class="mono">09.25 – 09.26</td>
+                    <td><span class="badge badge-done">종료</span></td>
+                    <td class="mono">09.24 11:30</td>
+                    <td>
+                      <div class="row gap-4">
+                        <button class="btn btn-utility edit-btn">수정</button>
+                        <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="row-link" data-id="N106" data-branch="seongsu" data-status="done">
+                    <td class="cell-strong">성수 지점 정수기 필터 교체 안내</td>
+                    <td><span class="tag">성수</span></td>
+                    <td class="mono">09.20 – 09.22</td>
+                    <td><span class="badge badge-done">종료</span></td>
+                    <td class="mono">09.19 14:00</td>
+                    <td>
+                      <div class="row gap-4">
+                        <button class="btn btn-utility edit-btn">수정</button>
+                        <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="row-link" data-id="N107" data-branch="all" data-status="done">
+                    <td class="cell-strong">추석 연휴 운영시간 안내</td>
+                    <td><span class="tag">전체</span></td>
+                    <td class="mono">09.14 – 09.18</td>
+                    <td><span class="badge badge-done">종료</span></td>
+                    <td class="mono">09.10 10:00</td>
+                    <td>
+                      <div class="row gap-4">
+                        <button class="btn btn-utility edit-btn">수정</button>
+                        <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="row-link" data-id="N108" data-branch="pangyo" data-status="done">
+                    <td class="cell-strong">판교 지점 신규 오픈 기념 이벤트</td>
+                    <td><span class="tag">판교</span></td>
+                    <td class="mono">09.01 – 09.10</td>
+                    <td><span class="badge badge-done">종료</span></td>
+                    <td class="mono">08.29 09:00</td>
+                    <td>
+                      <div class="row gap-4">
+                        <button class="btn btn-utility edit-btn">수정</button>
+                        <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="row-link" data-id="N109" data-branch="all" data-status="done">
+                    <td class="cell-strong">여름철 냉방기 가동 시간 변경 안내</td>
+                    <td><span class="tag">전체</span></td>
+                    <td class="mono">08.15 – 08.31</td>
+                    <td><span class="badge badge-done">종료</span></td>
+                    <td class="mono">08.14 09:00</td>
+                    <td>
+                      <div class="row gap-4">
+                        <button class="btn btn-utility edit-btn">수정</button>
+                        <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="row-link" data-id="N110" data-branch="seongsu" data-status="done">
+                    <td class="cell-strong">성수 3층 라운지 리모델링 공사 안내</td>
+                    <td><span class="tag">성수</span></td>
+                    <td class="mono">08.01 – 08.14</td>
+                    <td><span class="badge badge-done">종료</span></td>
+                    <td class="mono">07.30 09:30</td>
+                    <td>
+                      <div class="row gap-4">
+                        <button class="btn btn-utility edit-btn">수정</button>
+                        <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="row-link" data-id="N111" data-branch="pangyo" data-status="done">
+                    <td class="cell-strong">판교 지점 주차 정책 변경 안내</td>
+                    <td><span class="tag">판교</span></td>
+                    <td class="mono">07.10 – 07.24</td>
+                    <td><span class="badge badge-done">종료</span></td>
+                    <td class="mono">07.09 09:00</td>
+                    <td>
+                      <div class="row gap-4">
+                        <button class="btn btn-utility edit-btn">수정</button>
+                        <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="row-link" data-id="N112" data-branch="all" data-status="done">
+                    <td class="cell-strong">개인정보처리방침 개정 안내</td>
+                    <td><span class="tag">전체</span></td>
+                    <td class="mono">06.01 – 06.15</td>
+                    <td><span class="badge badge-done">종료</span></td>
+                    <td class="faint">—</td>
+                    <td>
+                      <div class="row gap-4">
+                        <button class="btn btn-utility edit-btn">수정</button>
+                        <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-foot">
+              <span id="tableFootNote">12 / 12건 표시 중</span>
+              <span>행을 클릭하면 우측 미리보기가 바뀝니다</span>
+            </div>
+          </div>
+
+          <!-- 우: 이용자 홈 배너·알림 미리보기 -->
+          <div class="card preview-card">
+            <h3 class="card-title mb-12">미리보기</h3>
+            <div class="banner mb-16" id="prevBanner" style="cursor:default;">
+              <i data-lucide="megaphone"></i>
+              <span class="banner-text" id="prevBannerText">10/18(토) 성수 3층 회의실 정기 점검 안내</span>
+              <span class="banner-counter">1/3</span>
+            </div>
+            <p class="caption mb-8">이용자 홈 알림 탭에는 이렇게 표시됩니다</p>
+            <div class="preview-notif">
+              <span class="icon-tile"><i data-lucide="megaphone"></i></span>
+              <div class="grow">
+                <div class="preview-notif-title" id="prevNotifTitle">10/18(토) 성수 3층 회의실 정기 점검 안내</div>
+                <p class="preview-notif-body" id="prevNotifBody">09:00–13:00 성수 3층 회의실 전체가 점검으로 비활성화됩니다</p>
+              </div>
+            </div>
+            <p class="caption mt-16">이용자 홈 배너 · 알림에 이렇게 노출됩니다</p>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 공지 등록/수정 드로어 -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">
+      <h3 id="drawerHeading">공지 등록</h3>
+      <button class="icon-btn" id="drawerClose" aria-label="닫기"><i data-lucide="x"></i></button>
+    </div>
+    <div class="drawer-body">
+      <div class="field">
+        <label>제목</label>
+        <input class="input" id="fTitle" placeholder="예: 10월 정기 점검 안내">
+      </div>
+      <div class="field">
+        <label>지점</label>
+        <select class="select" id="fBranch">
+          <option value="all">전체</option>
+          <option value="seongsu">성수</option>
+          <option value="hongdae">홍대</option>
+          <option value="pangyo">판교</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>본문</label>
+        <textarea class="textarea" id="fBody" placeholder="공지 내용을 입력하세요"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>노출 시작</label>
+          <input class="input" type="date" id="fStart">
+        </div>
+        <div class="field">
+          <label>노출 종료</label>
+          <input class="input" type="date" id="fEnd">
+        </div>
+      </div>
+      <div class="row-between">
+        <div>
+          <div class="label">등록 시 알림 발송</div>
+          <div class="caption">대상 지점 회원에게 웹 푸시 · 이메일로 발송합니다</div>
+        </div>
+        <button class="toggle on" id="fNotify" type="button" role="switch" aria-checked="true"></button>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <div class="label mb-8">미리보기</div>
+        <div class="banner" id="drawerPreviewBanner" style="cursor:default;">
+          <i data-lucide="megaphone"></i>
+          <span class="banner-text" id="drawerPreviewText">제목을 입력하세요</span>
+          <span class="banner-counter">1/3</span>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn btn-ghost" id="drawerCancel">취소</button>
+      <button class="btn btn-primary" id="drawerSubmit" disabled>등록</button>
+    </div>
+  </aside>
+
+  <!-- 삭제 확인 모달 -->
+  <div class="modal-backdrop" id="deleteModalBackdrop">
+    <div class="modal">
+      <div>
+        <h3>공지 삭제</h3>
+        <p class="card-desc mt-4" id="deleteModalTarget">제목</p>
+      </div>
+      <p class="text-sm muted">삭제하면 되돌릴 수 없고 이용자 홈 배너·알림 노출이 즉시 중단됩니다.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="deleteModalClose">취소</button>
+        <button class="btn btn-primary" id="deleteModalSubmit">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast fixed" id="toast"></div>
+
+  <script>
+    lucide.createIcons();
+    const $ = (id) => document.getElementById(id);
+
+    /* ── 오늘 기준일 (김하늘 · 14:12) ── */
+    const TODAY = new Date('2026-10-14T00:00:00');
+    const BRANCH_LABEL = { all: '전체', seongsu: '성수', hongdae: '홍대', pangyo: '판교' };
+    const STATUS_MAP = { live: ['badge-live', '노출 중'], upcoming: ['badge-upcoming', '예약됨'], done: ['badge-done', '종료'] };
+
+    /* ── 더미 공지 데이터 (표 12행과 1:1, 미리보기·수정 프리필에 사용) ── */
+    const NOTICES = {
+      N101: { title: '10/18(토) 성수 3층 회의실 정기 점검 안내', branch: 'seongsu', start: '2026-10-11', end: '2026-10-18', notifyAt: '10.11 09:02', status: 'live',
+        body: '10월 18일(토) 09:00–13:00 성수 3층 회의실 전체가 정기 점검으로 비활성화됩니다. 해당 시간대에 잡힌 예약은 운영팀이 개별 연락 후 조정해 드립니다.' },
+      N102: { title: '홍대 지점 주말 운영시간 변경 안내', branch: 'hongdae', start: '2026-10-09', end: '2026-10-31', notifyAt: '10.09 08:15', status: 'live',
+        body: '10월부터 홍대 지점 주말 운영시간이 10:00–18:00로 변경되었습니다. 기존 예약 중 변경 시간에 걸치는 건은 개별 안내드렸습니다.' },
+      N103: { title: '10월 신규 입주 법인 환영 · 커피 쿠폰 이벤트', branch: 'all', start: '2026-10-01', end: '2026-10-31', notifyAt: '10.01 09:00', status: 'live',
+        body: '10월 신규 입주한 법인 회원을 환영합니다. 라운지 프론트에서 커피 쿠폰 1매를 받아가세요. 10월 31일까지 사용 가능합니다.' },
+      N104: { title: '11월 정기 소독 및 공기청정 필터 교체 안내', branch: 'all', start: '2026-10-20', end: '2026-11-03', notifyAt: null, status: 'upcoming',
+        body: '11월 첫째 주 전 지점 정기 소독과 공기청정 필터 교체를 진행합니다. 작업 시간에는 일부 회의실 이용이 제한될 수 있습니다.' },
+      N105: { title: '홍대 지점 엘리베이터 정기 점검 안내', branch: 'hongdae', start: '2026-09-25', end: '2026-09-26', notifyAt: '09.24 11:30', status: 'done',
+        body: '홍대 지점 엘리베이터 정기 점검이 9월 26일 진행됩니다. 점검 시간에는 계단 이용을 부탁드립니다.' },
+      N106: { title: '성수 지점 정수기 필터 교체 안내', branch: 'seongsu', start: '2026-09-20', end: '2026-09-22', notifyAt: '09.19 14:00', status: 'done',
+        body: '성수 지점 전 층 정수기 필터를 교체했습니다. 교체 기간 중 일부 정수기 이용이 제한되었습니다.' },
+      N107: { title: '추석 연휴 운영시간 안내', branch: 'all', start: '2026-09-14', end: '2026-09-18', notifyAt: '09.10 10:00', status: 'done',
+        body: '추석 연휴 기간(9/14–9/18) 전 지점 운영시간이 10:00–18:00로 단축 운영되었습니다.' },
+      N108: { title: '판교 지점 신규 오픈 기념 이벤트', branch: 'pangyo', start: '2026-09-01', end: '2026-09-10', notifyAt: '08.29 09:00', status: 'done',
+        body: '판교 지점 신규 오픈을 기념해 전 회원 대상 이용권 할인 이벤트를 진행했습니다.' },
+      N109: { title: '여름철 냉방기 가동 시간 변경 안내', branch: 'all', start: '2026-08-15', end: '2026-08-31', notifyAt: '08.14 09:00', status: 'done',
+        body: '여름철 냉방기 가동 시간을 08:00–20:00로 조정 운영했습니다.' },
+      N110: { title: '성수 3층 라운지 리모델링 공사 안내', branch: 'seongsu', start: '2026-08-01', end: '2026-08-14', notifyAt: '07.30 09:30', status: 'done',
+        body: '성수 3층 라운지 리모델링 공사로 해당 기간 3층 라운지 이용이 제한되었습니다.' },
+      N111: { title: '판교 지점 주차 정책 변경 안내', branch: 'pangyo', start: '2026-07-10', end: '2026-07-24', notifyAt: '07.09 09:00', status: 'done',
+        body: '판교 지점 주차 정책이 변경되어 2시간 무료, 이후 시간당 요금이 부과되도록 조정되었습니다.' },
+      N112: { title: '개인정보처리방침 개정 안내', branch: 'all', start: '2026-06-01', end: '2026-06-15', notifyAt: null, status: 'done',
+        body: '개인정보처리방침이 일부 개정되어 시행되었습니다. 변경 사항은 홈페이지 하단에서 확인하실 수 있습니다.' },
+    };
+
+    function two(n) { return String(n).padStart(2, '0'); }
+    function fmtPeriod(start, end) {
+      const s = new Date(start + 'T00:00:00'), e = new Date(end + 'T00:00:00');
+      return `${two(s.getMonth() + 1)}.${two(s.getDate())} – ${two(e.getMonth() + 1)}.${two(e.getDate())}`;
+    }
+    function computeStatus(start, end) {
+      const s = new Date(start + 'T00:00:00'), e = new Date(end + 'T00:00:00');
+      if (TODAY < s) return 'upcoming';
+      if (TODAY > e) return 'done';
+      return 'live';
+    }
+
+    const toastEl = $('toast');
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    /* ── 헤더 요약 · 테이블 하단 카운트 갱신 ── */
+    function updateSummary() {
+      const rows = Array.from(document.querySelectorAll('#noticeTable tbody tr'));
+      const live = rows.filter(r => r.dataset.status === 'live').length;
+      const upcoming = rows.filter(r => r.dataset.status === 'upcoming').length;
+      const done = rows.filter(r => r.dataset.status === 'done').length;
+      $('summarySub').textContent = `노출 중 ${live} · 예약됨 ${upcoming} · 종료 ${done}`;
+    }
+
+    /* ── 좌: 지점 세그먼트 + 상태 칩 필터 ── */
+    let currentBranch = 'all';
+    let currentStatus = 'all';
+    function applyFilters() {
+      let shown = 0;
+      document.querySelectorAll('#noticeTable tbody tr').forEach(tr => {
+        const okBranch = currentBranch === 'all' || tr.dataset.branch === currentBranch || tr.dataset.branch === 'all';
+        const okStatus = currentStatus === 'all' || tr.dataset.status === currentStatus;
+        const show = okBranch && okStatus;
+        tr.classList.toggle('hidden', !show);
+        if (show) shown++;
+      });
+      const total = document.querySelectorAll('#noticeTable tbody tr').length;
+      $('tableFootNote').textContent = `${shown} / ${total}건 표시 중`;
+    }
+    document.querySelectorAll('#branchSeg button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#branchSeg button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentBranch = btn.dataset.branch;
+        applyFilters();
+      });
+    });
+    document.querySelectorAll('#statusChips .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#statusChips .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentStatus = chip.dataset.status;
+        applyFilters();
+      });
+    });
+
+    /* ── 우: 미리보기 렌더 ── */
+    function renderPreview(data) {
+      $('prevBannerText').textContent = data.title;
+      $('prevNotifTitle').textContent = data.title;
+      $('prevNotifBody').textContent = data.body.length > 42 ? data.body.slice(0, 42) + '…' : data.body;
+      $('drawerPreviewText').textContent = data.title || '제목을 입력하세요';
+    }
+
+    function selectRow(id) {
+      document.querySelectorAll('#noticeTable tbody tr').forEach(tr => tr.classList.toggle('selected', tr.dataset.id === id));
+      if (NOTICES[id]) renderPreview(NOTICES[id]);
+    }
+
+    document.querySelectorAll('#noticeTable tbody tr.row-link').forEach(tr => {
+      tr.addEventListener('click', () => selectRow(tr.dataset.id));
+    });
+
+    /* ── 드로어 (등록 / 수정) ── */
+    let drawerMode = 'create';
+    let editingId = null;
+
+    function openDrawer(mode, id) {
+      drawerMode = mode;
+      editingId = id || null;
+      const notifyToggle = $('fNotify');
+
+      if (mode === 'create') {
+        $('drawerHeading').textContent = '공지 등록';
+        $('drawerSubmit').textContent = '등록';
+        $('fTitle').value = '';
+        $('fBranch').value = 'all';
+        $('fBody').value = '';
+        $('fStart').value = '2026-10-14';
+        $('fEnd').value = '2026-10-21';
+        notifyToggle.classList.add('on');
+        notifyToggle.setAttribute('aria-checked', 'true');
+      } else {
+        const n = NOTICES[id];
+        $('drawerHeading').textContent = '공지 수정';
+        $('drawerSubmit').textContent = '저장';
+        $('fTitle').value = n.title;
+        $('fBranch').value = n.branch;
+        $('fBody').value = n.body;
+        $('fStart').value = n.start;
+        $('fEnd').value = n.end;
+        notifyToggle.classList.toggle('on', !!n.notifyAt);
+        notifyToggle.setAttribute('aria-checked', String(!!n.notifyAt));
+      }
+      renderPreview({ title: $('fTitle').value, body: $('fBody').value || '공지 내용을 입력하면 여기에 표시됩니다' });
+      updateSubmitState();
+      $('drawer').classList.add('open');
+      $('drawerBackdrop').classList.add('open');
+    }
+    function closeDrawer() {
+      $('drawer').classList.remove('open');
+      $('drawerBackdrop').classList.remove('open');
+      // 드로어 닫으면 미리보기는 현재 선택된 행 기준으로 복원
+      const selected = document.querySelector('#noticeTable tbody tr.selected');
+      if (selected && NOTICES[selected.dataset.id]) renderPreview(NOTICES[selected.dataset.id]);
+    }
+    function updateSubmitState() {
+      $('drawerSubmit').disabled = $('fTitle').value.trim().length === 0;
+    }
+
+    $('createBtn').addEventListener('click', () => openDrawer('create'));
+    $('drawerClose').addEventListener('click', closeDrawer);
+    $('drawerCancel').addEventListener('click', closeDrawer);
+    $('drawerBackdrop').addEventListener('click', closeDrawer);
+
+    /* 입력 시 실시간 미리보기 갱신 */
+    ['fTitle', 'fBody'].forEach(id => {
+      $(id).addEventListener('input', () => {
+        renderPreview({ title: $('fTitle').value, body: $('fBody').value || '공지 내용을 입력하면 여기에 표시됩니다' });
+        updateSubmitState();
+      });
+    });
+    $('fNotify').addEventListener('click', () => {
+      const on = !$('fNotify').classList.contains('on');
+      $('fNotify').classList.toggle('on', on);
+      $('fNotify').setAttribute('aria-checked', String(on));
+    });
+
+    /* 수정 버튼 (행 클릭과 별개, 드로어는 수정 버튼으로만 열림) */
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tr = btn.closest('tr');
+        openDrawer('edit', tr.dataset.id);
+      });
+    });
+
+    /* ── 등록/저장 제출 ── */
+    function buildRow(id, data) {
+      const [cls, label] = STATUS_MAP[data.status];
+      const tr = document.createElement('tr');
+      tr.className = 'row-link';
+      tr.dataset.id = id;
+      tr.dataset.branch = data.branch;
+      tr.dataset.status = data.status;
+      tr.innerHTML = `
+        <td class="cell-strong">${data.title}</td>
+        <td><span class="tag">${BRANCH_LABEL[data.branch]}</span></td>
+        <td class="mono">${fmtPeriod(data.start, data.end)}</td>
+        <td><span class="badge ${cls}">${label}</span></td>
+        <td class="${data.notifyAt ? 'mono' : 'faint'}">${data.notifyAt || '—'}</td>
+        <td>
+          <div class="row gap-4">
+            <button class="btn btn-utility edit-btn">수정</button>
+            <button class="icon-btn sm delete-btn" aria-label="삭제"><i data-lucide="trash-2"></i></button>
+          </div>
+        </td>`;
+      tr.addEventListener('click', () => selectRow(id));
+      tr.querySelector('.edit-btn').addEventListener('click', (e) => { e.stopPropagation(); openDrawer('edit', id); });
+      tr.querySelector('.delete-btn').addEventListener('click', (e) => { e.stopPropagation(); openDeleteModal(id); });
+      return tr;
+    }
+
+    function refreshRow(id) {
+      const n = NOTICES[id];
+      const tr = document.querySelector(`#noticeTable tr[data-id="${id}"]`);
+      if (!tr || !n) return;
+      n.status = computeStatus(n.start, n.end);
+      const [cls, label] = STATUS_MAP[n.status];
+      tr.dataset.branch = n.branch;
+      tr.dataset.status = n.status;
+      tr.children[0].textContent = n.title;
+      tr.children[1].querySelector('.tag').textContent = BRANCH_LABEL[n.branch];
+      tr.children[2].outerHTML = `<td class="mono">${fmtPeriod(n.start, n.end)}</td>`;
+      const badgeEl = tr.children[3].querySelector('.badge');
+      badgeEl.className = 'badge ' + cls;
+      badgeEl.textContent = label;
+      const notifyCell = tr.children[4];
+      notifyCell.className = n.notifyAt ? 'mono' : 'faint';
+      notifyCell.textContent = n.notifyAt || '—';
+    }
+
+    $('drawerSubmit').addEventListener('click', () => {
+      const title = $('fTitle').value.trim();
+      if (!title) return;
+      const branch = $('fBranch').value;
+      const body = $('fBody').value.trim() || '내용이 준비 중입니다.';
+      const start = $('fStart').value || '2026-10-14';
+      const end = $('fEnd').value || start;
+      const notifyOn = $('fNotify').classList.contains('on');
+
+      if (drawerMode === 'create') {
+        const id = 'N' + Math.floor(100 + Math.random() * 800) + (Date.now() % 100);
+        const status = computeStatus(start, end);
+        const notifyAt = notifyOn ? '10.14 14:12' : null;
+        NOTICES[id] = { title, branch, start, end, notifyAt, body, status };
+        const tbody = document.querySelector('#noticeTable tbody');
+        tbody.insertBefore(buildRow(id, NOTICES[id]), tbody.firstChild);
+        lucide.createIcons();
+        selectRow(id);
+        applyFilters();
+        updateSummary();
+        closeDrawer();
+        toast(notifyOn ? '공지를 등록했어요 · 알림 214명 발송' : '공지를 등록했어요');
+      } else {
+        const n = NOTICES[editingId];
+        const wasNotified = !!n.notifyAt;
+        n.title = title; n.branch = branch; n.body = body; n.start = start; n.end = end;
+        if (notifyOn && !wasNotified) n.notifyAt = '10.14 14:12';
+        if (!notifyOn) n.notifyAt = null;
+        refreshRow(editingId);
+        selectRow(editingId);
+        applyFilters();
+        updateSummary();
+        closeDrawer();
+        toast('공지를 수정했어요' + (notifyOn && !wasNotified ? ' · 알림 발송' : ''));
+      }
+    });
+
+    /* ── 삭제 확인 모달 ── */
+    let deletingId = null;
+    function openDeleteModal(id) {
+      deletingId = id;
+      $('deleteModalTarget').textContent = NOTICES[id] ? NOTICES[id].title : id;
+      $('deleteModalBackdrop').classList.add('open');
+    }
+    function closeDeleteModal() { $('deleteModalBackdrop').classList.remove('open'); deletingId = null; }
+    $('deleteModalClose').addEventListener('click', closeDeleteModal);
+    $('deleteModalBackdrop').addEventListener('click', (e) => { if (e.target === $('deleteModalBackdrop')) closeDeleteModal(); });
+    $('deleteModalSubmit').addEventListener('click', () => {
+      if (!deletingId) return;
+      const tr = document.querySelector(`#noticeTable tr[data-id="${deletingId}"]`);
+      const wasSelected = tr && tr.classList.contains('selected');
+      delete NOTICES[deletingId];
+      if (tr) tr.remove();
+      closeDeleteModal();
+      applyFilters();
+      updateSummary();
+      toast('공지를 삭제했어요');
+      if (wasSelected) {
+        const next = document.querySelector('#noticeTable tbody tr');
+        if (next) selectRow(next.dataset.id);
+      }
+    });
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tr = btn.closest('tr');
+        openDeleteModal(tr.dataset.id);
+      });
+    });
+
+    /* ── 초기화 ── */
+    updateSummary();
+    applyFilters();
+    selectRow('N101');
+  </script>
+</body>
+</html>

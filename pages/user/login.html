@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P2 로그인/회원가입 — 모두라운지 예약</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 로그인/회원가입 고유 스타일 (프레임 크롬은 common.css 클래스만 사용) ── */
+    .auth-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .auth-mark {
+      display: flex; align-items: center; justify-content: center;
+      width: 52px; height: 52px;
+      color: var(--on-primary); background: var(--primary);
+      border-radius: var(--r-lg);
+    }
+    .auth-mark .lucide { width: 26px; height: 26px; }
+    .auth-brand-name { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; }
+
+    .auth-head { text-align: center; margin-bottom: 24px; }
+    .auth-head h1 { font-size: 20px; }
+
+    .auth-divider { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--ink-faint); }
+    .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
+
+    #signupForm.hidden, #loginForm.hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="mobile-stage">
+    <div class="mobile-frame">
+      <div class="m-screen">
+
+        <!-- 상태바 -->
+        <div class="m-status">
+          <span>9:41</span>
+          <span class="m-status-icons">
+            <i data-lucide="signal"></i>
+            <i data-lucide="wifi"></i>
+            <i data-lucide="battery-full"></i>
+          </span>
+        </div>
+
+        <!-- 헤더 생략 — m-content 상단에 브랜드 + 타이틀 배치 -->
+        <div class="m-content" style="padding: 28px 20px 24px;">
+
+          <div class="auth-brand">
+            <span class="auth-mark"><i data-lucide="building-2"></i></span>
+            <span class="auth-brand-name">모두라운지 예약</span>
+          </div>
+
+          <div class="auth-head">
+            <h1 id="authTitle">다시 만나 반가워요</h1>
+            <p class="caption mt-4" id="authSubtitle">이메일 또는 카카오 계정으로 로그인하세요</p>
+          </div>
+
+          <!-- 로그인 | 회원가입 세그먼트 -->
+          <div class="segment block mb-24" id="authSegment">
+            <button class="active" data-mode="login">로그인</button>
+            <button data-mode="signup">회원가입</button>
+          </div>
+
+          <!-- 로그인 폼 -->
+          <div id="loginForm">
+            <div class="stack">
+              <div class="field">
+                <label>이메일</label>
+                <input class="input" type="email" id="loginEmail" placeholder="seoyeon.park@bridgelab.co.kr">
+              </div>
+              <div class="field">
+                <label>비밀번호</label>
+                <input class="input" type="password" id="loginPw" placeholder="비밀번호 입력">
+              </div>
+            </div>
+            <div class="row-between mt-8 mb-20">
+              <span></span>
+              <button class="link text-sm" id="forgotBtn">비밀번호를 잊으셨나요?</button>
+            </div>
+            <button class="btn btn-primary btn-block btn-lg" id="loginBtn">로그인</button>
+
+            <div class="auth-divider mt-24 mb-20"><span>또는</span></div>
+
+            <button class="btn btn-outline btn-block" id="kakaoBtn">
+              <i data-lucide="message-circle"></i>카카오로 계속하기
+            </button>
+
+            <p class="caption center mt-24" style="line-height:1.6;">
+              계속 진행하면 모두라운지 예약의<br>
+              <button type="button" class="link" data-doc="이용약관">이용약관</button> 및 <button type="button" class="link" data-doc="개인정보 처리방침">개인정보 처리방침</button>에 동의하는 것으로 간주됩니다.
+            </p>
+          </div>
+
+          <!-- 회원가입 폼 -->
+          <div id="signupForm" class="hidden">
+            <div class="stack">
+              <div class="field">
+                <label>이메일</label>
+                <input class="input" type="email" id="suEmail" placeholder="seoyeon.park@bridgelab.co.kr">
+              </div>
+              <div class="field">
+                <label>비밀번호</label>
+                <input class="input" type="password" id="suPw" placeholder="8자 이상, 영문+숫자 조합">
+              </div>
+              <div class="field">
+                <label>비밀번호 확인</label>
+                <input class="input" type="password" id="suPw2" placeholder="비밀번호 다시 입력">
+              </div>
+            </div>
+            <label class="check mt-20 mb-20">
+              <input type="checkbox" id="agreeCheck">
+              <span>이용약관 및 개인정보 처리방침에 동의합니다</span>
+            </label>
+            <button class="btn btn-primary btn-block btn-lg" id="signupBtn" disabled>가입하기</button>
+
+            <p class="caption center mt-16">
+              이미 계정이 있으신가요? <button class="link" id="toLoginLink">로그인하기</button>
+            </p>
+          </div>
+
+        </div>
+
+        <!-- 탭바 생략 (로그인 화면) -->
+
+        <!-- 홈 인디케이터 -->
+        <div class="m-home"></div>
+
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    const $ = (id) => document.getElementById(id);
+    const toastEl = $('toast');
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    /* 로그인 | 회원가입 세그먼트 전환 */
+    const modeButtons = document.querySelectorAll('#authSegment button');
+    function setMode(mode) {
+      modeButtons.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+      $('loginForm').classList.toggle('hidden', mode !== 'login');
+      $('signupForm').classList.toggle('hidden', mode !== 'signup');
+      $('authTitle').textContent = mode === 'login' ? '다시 만나 반가워요' : '계정을 만들어볼까요';
+      $('authSubtitle').textContent = mode === 'login'
+        ? '이메일 또는 카카오 계정으로 로그인하세요'
+        : '이메일로 간편하게 가입할 수 있어요';
+    }
+    modeButtons.forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+    $('toLoginLink').addEventListener('click', () => setMode('login'));
+
+    /* 비밀번호 재설정 (F2 — 전제 기능) */
+    $('forgotBtn').addEventListener('click', () => toast('재설정 메일을 보냈어요'));
+
+    /* 약관·개인정보 전문 (전제 기능) */
+    document.querySelectorAll('[data-doc]').forEach(b =>
+      b.addEventListener('click', () => toast(b.dataset.doc + ' 전문을 표시합니다')));
+
+    /* 이메일 로그인 (F2) → 기존 회원은 홈으로 */
+    $('loginBtn').addEventListener('click', () => { location.href = 'home.html'; });
+
+    /* 카카오 간편 로그인 (F3) → 기존 연동 회원은 홈으로 */
+    $('kakaoBtn').addEventListener('click', () => { location.href = 'home.html'; });
+
+    /* 회원가입 약관 동의 체크 시에만 가입 버튼 활성화 */
+    $('agreeCheck').addEventListener('change', (e) => { $('signupBtn').disabled = !e.target.checked; });
+
+    /* 이메일 가입 (F1) → 최초 프로필 등록으로 */
+    $('signupBtn').addEventListener('click', () => { location.href = 'onboarding.html'; });
+  </script>
+</body>
+</html>

@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P15 공간 관리 — 모두라운지 관리자</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 공간 관리 고유 스타일 (사이드바·헤더·드로어 구조는 common.css 클래스만 사용) ── */
+    .tag-row { display: flex; flex-wrap: wrap; gap: 4px; }
+    .upload-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px;
+      color: var(--ink-faint);
+      background: var(--canvas);
+      border: 1px dashed var(--hairline-strong);
+      border-radius: var(--r-md);
+      cursor: pointer;
+      transition: background-color .12s ease, color .12s ease;
+    }
+    .upload-box:hover { background: var(--fill-soft); color: var(--ink-muted); }
+    .upload-box .lucide { width: 22px; height: 22px; stroke-width: 1.5; flex: none; }
+    .cap-stepper { display: flex; align-items: center; gap: 8px; }
+    .cap-stepper input { text-align: center; max-width: 64px; flex: none; }
+    .table td.wait-cell { color: var(--ink-faint); }
+    @media (max-width: 1240px) {
+      .table-wrap .table-toolbar { flex-wrap: wrap; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin">
+
+    <!-- 좌측 GNB (전 관리자 페이지 공통) -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-mark"><i data-lucide="building-2"></i></span>
+        <div>모두라운지<small>운영자 콘솔</small></div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+        <a class="nav-item active" href="spaces.html"><i data-lucide="door-open"></i>공간 관리</a>
+        <a class="nav-item" href="reservations.html"><i data-lucide="calendar-check"></i>예약 관리</a>
+        <a class="nav-item" href="members.html"><i data-lucide="users"></i>회원 관리</a>
+        <a class="nav-item" href="notices.html"><i data-lucide="megaphone"></i>공지 관리</a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="sidebar-user">
+          <span class="avatar">김</span>
+          <div class="who">
+            <div class="name">김하늘</div>
+            <div class="role">전체 관리자 · 3개 지점</div>
+          </div>
+          <button class="icon-btn sm" onclick="location.href='login.html'" title="로그아웃" aria-label="로그아웃"><i data-lucide="log-out"></i></button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+
+      <!-- 페이지 헤더: 제목 + 지점 필터 세그먼트 + 공간 등록 -->
+      <header class="admin-header">
+        <h1>공간 관리</h1>
+        <span class="sub" id="pageSub">회의실 14실 · 자율좌석 구역 8개</span>
+        <div class="admin-header-actions">
+          <div class="segment" id="branchSeg">
+            <button class="active" data-branch="all">전체</button>
+            <button data-branch="seongsu">성수</button>
+            <button data-branch="hongdae">홍대</button>
+            <button data-branch="pangyo">판교</button>
+          </div>
+          <button class="btn btn-primary" id="createBtn"><i data-lucide="plus"></i>공간 등록</button>
+        </div>
+      </header>
+
+      <div class="admin-body">
+
+        <div class="tabs" id="typeTabs">
+          <button class="tab active" data-type="room">회의실 <span id="roomTabCount">14</span></button>
+          <button class="tab" data-type="zone">자율좌석 구역 <span id="zoneTabCount">8</span></button>
+        </div>
+
+        <!-- ── 회의실 표 ── -->
+        <div id="roomPanel">
+          <div class="table-wrap">
+            <div class="table-toolbar">
+              <div class="input-icon" style="max-width: 280px;">
+                <i data-lucide="search"></i>
+                <input class="input" id="roomSearch" placeholder="회의실 이름으로 검색">
+              </div>
+              <div class="chips" id="roomChips">
+                <button class="chip active" data-status="all">전체 <span id="rcAll">14</span></button>
+                <button class="chip" data-status="active">운영 중 <span id="rcActive">13</span></button>
+                <button class="chip" data-status="maint">점검 중 <span id="rcMaint">0</span></button>
+                <button class="chip" data-status="inactive">비활성 <span id="rcInactive">1</span></button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="table" id="roomTable">
+                <thead>
+                  <tr>
+                    <th>지점</th>
+                    <th>이름</th>
+                    <th>층·구역</th>
+                    <th>인원</th>
+                    <th>장비</th>
+                    <th>크레딧/시간</th>
+                    <th>운영 시간</th>
+                    <th>상태</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="row-link" data-id="rm-01" data-branch="seongsu" data-status="active">
+                    <td>성수</td>
+                    <td class="cell-strong">A 회의실</td>
+                    <td>3층 A구역</td>
+                    <td class="mono">4인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span><span class="tag">화이트보드</span></div></td>
+                    <td class="mono">20</td>
+                    <td class="mono">08:00–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-01" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-02" data-branch="seongsu" data-status="active">
+                    <td>성수</td>
+                    <td class="cell-strong">B 회의실</td>
+                    <td>3층 B구역</td>
+                    <td class="mono">8인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span><span class="tag">화이트보드</span><span class="tag">화상회의</span></div></td>
+                    <td class="mono">32</td>
+                    <td class="mono">08:00–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span><span class="cell-sub">10/18(토) 점검 예정</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-02" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-03" data-branch="seongsu" data-status="active">
+                    <td>성수</td>
+                    <td class="cell-strong">C 회의실</td>
+                    <td>4층 A구역</td>
+                    <td class="mono">6인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span><span class="tag">화상회의</span></div></td>
+                    <td class="mono">28</td>
+                    <td class="mono">08:00–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-03" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-04" data-branch="seongsu" data-status="active">
+                    <td>성수</td>
+                    <td class="cell-strong">D 회의실</td>
+                    <td>2층 C구역</td>
+                    <td class="mono">2인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span></div></td>
+                    <td class="mono">12</td>
+                    <td class="mono">08:00–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-04" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-05" data-branch="seongsu" data-status="active">
+                    <td>성수</td>
+                    <td class="cell-strong">E 회의실</td>
+                    <td>4층 B구역</td>
+                    <td class="mono">4인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span><span class="tag">화상회의</span></div></td>
+                    <td class="mono">20</td>
+                    <td class="mono">08:00–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-05" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-06" data-branch="seongsu" data-status="active">
+                    <td>성수</td>
+                    <td class="cell-strong">세미나룸</td>
+                    <td>5층</td>
+                    <td class="mono">12인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span><span class="tag">화이트보드</span><span class="tag">화상회의</span></div></td>
+                    <td class="mono">48</td>
+                    <td class="mono">08:00–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-06" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-07" data-branch="hongdae" data-status="active">
+                    <td>홍대</td>
+                    <td class="cell-strong">A 회의실</td>
+                    <td>2층 A구역</td>
+                    <td class="mono">4인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span><span class="tag">화이트보드</span></div></td>
+                    <td class="mono">20</td>
+                    <td class="mono">08:00–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-07" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-08" data-branch="hongdae" data-status="active">
+                    <td>홍대</td>
+                    <td class="cell-strong">B 회의실</td>
+                    <td>2층 B구역</td>
+                    <td class="mono">6인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span><span class="tag">화상회의</span></div></td>
+                    <td class="mono">26</td>
+                    <td class="mono">08:00–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-08" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-09" data-branch="hongdae" data-status="active">
+                    <td>홍대</td>
+                    <td class="cell-strong">C 회의실</td>
+                    <td>3층 A구역</td>
+                    <td class="mono">6인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span><span class="tag">화이트보드</span><span class="tag">화상회의</span></div></td>
+                    <td class="mono">26</td>
+                    <td class="mono">08:00–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-09" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-10" data-branch="hongdae" data-status="active">
+                    <td>홍대</td>
+                    <td class="cell-strong">D 회의실</td>
+                    <td>3층 B구역</td>
+                    <td class="mono">2인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span></div></td>
+                    <td class="mono">12</td>
+                    <td class="mono">08:00–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-10" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-11" data-branch="hongdae" data-status="inactive">
+                    <td>홍대</td>
+                    <td class="cell-strong">라운지룸</td>
+                    <td>4층</td>
+                    <td class="mono">10인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span><span class="tag">화이트보드</span><span class="tag">화상회의</span></div></td>
+                    <td class="mono">40</td>
+                    <td class="mono">08:00–22:00</td>
+                    <td><span class="badge badge-outline">비활성</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-11" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-12" data-branch="pangyo" data-status="active">
+                    <td>판교</td>
+                    <td class="cell-strong">A 회의실</td>
+                    <td>1층 A구역</td>
+                    <td class="mono">4인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span><span class="tag">화이트보드</span></div></td>
+                    <td class="mono">20</td>
+                    <td class="mono">07:30–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-12" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-13" data-branch="pangyo" data-status="active">
+                    <td>판교</td>
+                    <td class="cell-strong">B 회의실</td>
+                    <td>1층 B구역</td>
+                    <td class="mono">8인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span><span class="tag">화이트보드</span><span class="tag">화상회의</span></div></td>
+                    <td class="mono">32</td>
+                    <td class="mono">07:30–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-13" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="rm-14" data-branch="pangyo" data-status="active">
+                    <td>판교</td>
+                    <td class="cell-strong">세미나룸</td>
+                    <td>2층</td>
+                    <td class="mono">12인</td>
+                    <td><div class="tag-row"><span class="tag">모니터</span><span class="tag">화이트보드</span><span class="tag">화상회의</span></div></td>
+                    <td class="mono">48</td>
+                    <td class="mono">07:30–22:00</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="rm-14" data-kind="room"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-foot">
+              <span id="roomFootNote">표시 14건 · 전체 14 · 운영 중 13 · 점검 중 0 · 비활성 1</span>
+              <span>행을 클릭하거나 수정을 누르면 상세 정보가 채워진 드로어가 열립니다</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 자율좌석 구역 표 ── -->
+        <div id="zonePanel" class="hidden">
+          <div class="table-wrap">
+            <div class="table-toolbar">
+              <div class="input-icon" style="max-width: 280px;">
+                <i data-lucide="search"></i>
+                <input class="input" id="zoneSearch" placeholder="구역명으로 검색">
+              </div>
+              <div class="chips" id="zoneChips">
+                <button class="chip active" data-status="all">전체 <span id="zcAll">8</span></button>
+                <button class="chip" data-status="active">운영 중 <span id="zcActive">8</span></button>
+                <button class="chip" data-status="maint">점검 중 <span id="zcMaint">0</span></button>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="table" id="zoneTable">
+                <thead>
+                  <tr>
+                    <th>지점</th>
+                    <th>구역명</th>
+                    <th>층</th>
+                    <th>좌석 수</th>
+                    <th>현재 배정</th>
+                    <th>상태</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="row-link" data-id="zn-01" data-branch="seongsu" data-status="active">
+                    <td>성수</td>
+                    <td class="cell-strong">2층 B구역</td>
+                    <td>2층</td>
+                    <td class="mono">20석</td>
+                    <td class="mono">14석</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="zn-01" data-kind="zone"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="zn-02" data-branch="seongsu" data-status="active">
+                    <td>성수</td>
+                    <td class="cell-strong">3층 C구역</td>
+                    <td>3층</td>
+                    <td class="mono">16석</td>
+                    <td class="mono">12석</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="zn-02" data-kind="zone"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="zn-03" data-branch="seongsu" data-status="active">
+                    <td>성수</td>
+                    <td class="cell-strong">4층 D구역</td>
+                    <td>4층</td>
+                    <td class="mono">12석</td>
+                    <td class="mono">8석</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="zn-03" data-kind="zone"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="zn-04" data-branch="hongdae" data-status="active">
+                    <td>홍대</td>
+                    <td class="cell-strong">2층 C구역</td>
+                    <td>2층</td>
+                    <td class="mono">18석</td>
+                    <td class="mono">10석</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="zn-04" data-kind="zone"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="zn-05" data-branch="hongdae" data-status="active">
+                    <td>홍대</td>
+                    <td class="cell-strong">3층 D구역</td>
+                    <td>3층</td>
+                    <td class="mono">14석</td>
+                    <td class="mono">8석</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="zn-05" data-kind="zone"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="zn-06" data-branch="hongdae" data-status="active">
+                    <td>홍대</td>
+                    <td class="cell-strong">4층 라운지</td>
+                    <td>4층</td>
+                    <td class="mono">8석</td>
+                    <td class="mono">4석</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="zn-06" data-kind="zone"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="zn-07" data-branch="pangyo" data-status="active">
+                    <td>판교</td>
+                    <td class="cell-strong">2층 C구역</td>
+                    <td>2층</td>
+                    <td class="mono">20석</td>
+                    <td class="mono">12석</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="zn-07" data-kind="zone"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                  <tr class="row-link" data-id="zn-08" data-branch="pangyo" data-status="active">
+                    <td>판교</td>
+                    <td class="cell-strong">3층 D구역</td>
+                    <td>3층</td>
+                    <td class="mono">12석</td>
+                    <td class="mono">7석</td>
+                    <td><span class="badge badge-neutral">운영 중</span></td>
+                    <td><button class="btn btn-utility edit-btn" data-id="zn-08" data-kind="zone"><i data-lucide="pencil"></i>수정</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-foot">
+              <span id="zoneFootNote">표시 8건 · 합계 120석 · 배정 75석</span>
+              <span>지점 소계 · 성수 48석/34 · 홍대 40석/22 · 판교 32석/19</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- 우측 드로어: 공간 등록·수정 -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">
+      <h3 id="drawerTitle">공간 등록</h3>
+      <button class="icon-btn" id="drawerCloseBtn" aria-label="닫기"><i data-lucide="x"></i></button>
+    </div>
+    <div class="drawer-body">
+      <div class="field">
+        <label>지점</label>
+        <select class="select" id="fBranch">
+          <option value="seongsu">성수</option>
+          <option value="hongdae">홍대</option>
+          <option value="pangyo">판교</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>이름</label>
+        <input class="input" id="fName" placeholder="예: A 회의실 또는 2층 B구역">
+      </div>
+      <div class="field">
+        <label>유형</label>
+        <div class="segment block" id="fType">
+          <button class="active" data-type="room" type="button">회의실</button>
+          <button data-type="zone" type="button">좌석 구역</button>
+        </div>
+      </div>
+      <div class="field">
+        <label id="fLocLabel">층·구역</label>
+        <input class="input" id="fLoc" placeholder="예: 3층 A구역">
+      </div>
+      <div class="field">
+        <label id="fCapLabel">수용 인원</label>
+        <div class="cap-stepper">
+          <button class="icon-btn bordered" id="fCapMinus" type="button" aria-label="감소"><i data-lucide="minus"></i></button>
+          <input class="input" id="fCapValue" value="4" readonly>
+          <button class="icon-btn bordered" id="fCapPlus" type="button" aria-label="증가"><i data-lucide="plus"></i></button>
+          <span class="caption" id="fCapUnit">인</span>
+        </div>
+      </div>
+      <div class="field" id="fEquipField">
+        <label>장비</label>
+        <div class="row wrap" style="gap: 12px;">
+          <label class="check"><input type="checkbox" data-eq="monitor">모니터</label>
+          <label class="check"><input type="checkbox" data-eq="presentation">화이트보드</label>
+          <label class="check"><input type="checkbox" data-eq="video">화상회의</label>
+          <label class="check"><input type="checkbox" data-eq="outlet">콘센트</label>
+        </div>
+      </div>
+      <div class="field" id="fCreditField">
+        <label>시간당 크레딧</label>
+        <input class="input" type="number" id="fCredit" value="20" min="0" step="1">
+      </div>
+      <div class="field">
+        <label>운영 시간</label>
+        <div class="row">
+          <select class="select" id="fOpenStart"></select>
+          <span class="faint">~</span>
+          <select class="select" id="fOpenEnd"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>사진</label>
+        <div class="upload-box" id="fUpload">
+          <i data-lucide="image-plus"></i>
+          <span>사진을 추가하려면 클릭 (최대 5장, 이 시안에서는 업로드가 비활성화되어 있습니다)</span>
+        </div>
+      </div>
+      <div class="field">
+        <div class="row-between">
+          <label style="margin: 0;">상태</label>
+          <div class="row">
+            <span class="text-sm fw-600" id="fStatusLabel">운영 중</span>
+            <button class="toggle" id="fStatusToggle" type="button" aria-label="상태 전환"></button>
+          </div>
+        </div>
+        <div class="card card-soft hidden" id="fMaintWarn" style="gap: 10px;">
+          <p class="text-sm secondary" style="margin: 0;">신규 예약·배정이 차단되고, 영향 받는 예약 3건에 안내가 발송됩니다.</p>
+          <button class="btn btn-outline btn-sm" id="fSeeAffected" type="button">영향 예약 보기</button>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn btn-ghost" id="fCancel" type="button">취소</button>
+      <button class="btn btn-primary" id="fSave" type="button">저장</button>
+    </div>
+  </aside>
+
+  <div class="toast fixed" id="toast"></div>
+
+  <script>
+    lucide.createIcons();
+
+    /* ── 단일 원본 데이터 (표와 드로어가 동일 값 참조) ── */
+    const BRANCH_NAME = { all: '전체', seongsu: '성수', hongdae: '홍대', pangyo: '판교' };
+
+    const ROOMS = {
+      'rm-01': { branch: 'seongsu', name: 'A 회의실', loc: '3층 A구역', cap: 4, equip: ['monitor', 'presentation'], credit: 20, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'rm-02': { branch: 'seongsu', name: 'B 회의실', loc: '3층 B구역', cap: 8, equip: ['monitor', 'presentation', 'video'], credit: 32, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'rm-03': { branch: 'seongsu', name: 'C 회의실', loc: '4층 A구역', cap: 6, equip: ['monitor', 'video'], credit: 28, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'rm-04': { branch: 'seongsu', name: 'D 회의실', loc: '2층 C구역', cap: 2, equip: ['monitor'], credit: 12, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'rm-05': { branch: 'seongsu', name: 'E 회의실', loc: '4층 B구역', cap: 4, equip: ['monitor', 'video'], credit: 20, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'rm-06': { branch: 'seongsu', name: '세미나룸', loc: '5층', cap: 12, equip: ['monitor', 'presentation', 'video'], credit: 48, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'rm-07': { branch: 'hongdae', name: 'A 회의실', loc: '2층 A구역', cap: 4, equip: ['monitor', 'presentation'], credit: 20, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'rm-08': { branch: 'hongdae', name: 'B 회의실', loc: '2층 B구역', cap: 6, equip: ['monitor', 'video'], credit: 26, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'rm-09': { branch: 'hongdae', name: 'C 회의실', loc: '3층 A구역', cap: 6, equip: ['monitor', 'presentation', 'video'], credit: 26, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'rm-10': { branch: 'hongdae', name: 'D 회의실', loc: '3층 B구역', cap: 2, equip: ['monitor'], credit: 12, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'rm-11': { branch: 'hongdae', name: '라운지룸', loc: '4층', cap: 10, equip: ['monitor', 'presentation', 'video'], credit: 40, start: '08:00', end: '22:00', status: 'inactive', statusLabel: '비활성' },
+      'rm-12': { branch: 'pangyo', name: 'A 회의실', loc: '1층 A구역', cap: 4, equip: ['monitor', 'presentation'], credit: 20, start: '07:30', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'rm-13': { branch: 'pangyo', name: 'B 회의실', loc: '1층 B구역', cap: 8, equip: ['monitor', 'presentation', 'video'], credit: 32, start: '07:30', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'rm-14': { branch: 'pangyo', name: '세미나룸', loc: '2층', cap: 12, equip: ['monitor', 'presentation', 'video'], credit: 48, start: '07:30', end: '22:00', status: 'active', statusLabel: '운영 중' },
+    };
+
+    const ZONES = {
+      'zn-01': { branch: 'seongsu', name: '2층 B구역', loc: '2층', cap: 20, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'zn-02': { branch: 'seongsu', name: '3층 C구역', loc: '3층', cap: 16, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'zn-03': { branch: 'seongsu', name: '4층 D구역', loc: '4층', cap: 12, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'zn-04': { branch: 'hongdae', name: '2층 C구역', loc: '2층', cap: 18, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'zn-05': { branch: 'hongdae', name: '3층 D구역', loc: '3층', cap: 14, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'zn-06': { branch: 'hongdae', name: '4층 라운지', loc: '4층', cap: 8, start: '08:00', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'zn-07': { branch: 'pangyo', name: '2층 C구역', loc: '2층', cap: 20, start: '07:30', end: '22:00', status: 'active', statusLabel: '운영 중' },
+      'zn-08': { branch: 'pangyo', name: '3층 D구역', loc: '3층', cap: 12, start: '07:30', end: '22:00', status: 'active', statusLabel: '운영 중' },
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const toastEl = $('toast');
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    /* ── 운영 시간 select 옵션 채우기 (07:00~22:00, 30분 단위) ── */
+    (function fillTimeOptions() {
+      const opts = [];
+      for (let h = 7; h <= 22; h++) {
+        opts.push(String(h).padStart(2, '0') + ':00');
+        if (h < 22) opts.push(String(h).padStart(2, '0') + ':30');
+      }
+      const startSel = $('fOpenStart'), endSel = $('fOpenEnd');
+      opts.forEach((t) => {
+        startSel.appendChild(new Option(t, t));
+        endSel.appendChild(new Option(t, t));
+      });
+    })();
+
+    let currentBranch = 'all';
+    let currentTab = 'room';
+
+    /* ── 지점 세그먼트 필터 ── */
+    $('branchSeg').querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        $('branchSeg').querySelectorAll('button').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentBranch = btn.dataset.branch;
+        applyAllFilters();
+        toast(`${BRANCH_NAME[currentBranch]} 기준으로 표시`);
+      });
+    });
+
+    /* ── 회의실 / 좌석 구역 탭 ── */
+    $('typeTabs').querySelectorAll('.tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        $('typeTabs').querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentTab = tab.dataset.type;
+        $('roomPanel').classList.toggle('hidden', currentTab !== 'room');
+        $('zonePanel').classList.toggle('hidden', currentTab !== 'zone');
+      });
+    });
+
+    /* ── 검색 · 상태 칩 ── */
+    let roomSearchText = '';
+    let roomStatusFilter = 'all';
+    let zoneSearchText = '';
+    let zoneStatusFilter = 'all';
+
+    $('roomSearch').addEventListener('input', (e) => { roomSearchText = e.target.value.trim(); applyRoomFilters(); });
+    $('zoneSearch').addEventListener('input', (e) => { zoneSearchText = e.target.value.trim(); applyZoneFilters(); });
+
+    $('roomChips').querySelectorAll('.chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        $('roomChips').querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
+        chip.classList.add('active');
+        roomStatusFilter = chip.dataset.status;
+        applyRoomFilters();
+      });
+    });
+    $('zoneChips').querySelectorAll('.chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        $('zoneChips').querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
+        chip.classList.add('active');
+        zoneStatusFilter = chip.dataset.status;
+        applyZoneFilters();
+      });
+    });
+
+    function applyRoomFilters() {
+      let shown = 0, active = 0, maint = 0, inactive = 0;
+      let brShown = 0, brActive = 0, brMaint = 0, brInactive = 0;
+      document.querySelectorAll('#roomTable tbody tr').forEach((tr) => {
+        const inBranch = currentBranch === 'all' || tr.dataset.branch === currentBranch;
+        if (tr.dataset.status === 'active') brActive += inBranch ? 1 : 0;
+        if (tr.dataset.status === 'maint') brMaint += inBranch ? 1 : 0;
+        if (tr.dataset.status === 'inactive') brInactive += inBranch ? 1 : 0;
+        if (inBranch) brShown++;
+
+        const matchStatus = roomStatusFilter === 'all' || tr.dataset.status === roomStatusFilter;
+        const nameText = tr.querySelector('.cell-strong').textContent.toLowerCase();
+        const matchSearch = !roomSearchText || nameText.includes(roomSearchText.toLowerCase());
+        const show = inBranch && matchStatus && matchSearch;
+        tr.classList.toggle('hidden', !show);
+        if (show) shown++;
+      });
+      $('rcAll').textContent = brShown;
+      $('rcActive').textContent = brActive;
+      $('rcMaint').textContent = brMaint;
+      $('rcInactive').textContent = brInactive;
+      $('roomTabCount').textContent = brShown;
+      $('roomFootNote').textContent = `표시 ${shown}건 · 전체 ${brShown} · 운영 중 ${brActive} · 점검 중 ${brMaint} · 비활성 ${brInactive}`;
+    }
+
+    function applyZoneFilters() {
+      let shown = 0;
+      let brShown = 0, brActive = 0, brMaint = 0;
+      let capSum = 0, assignedSum = 0;
+      document.querySelectorAll('#zoneTable tbody tr').forEach((tr) => {
+        const inBranch = currentBranch === 'all' || tr.dataset.branch === currentBranch;
+        if (inBranch) {
+          brShown++;
+          if (tr.dataset.status === 'active') brActive++;
+          if (tr.dataset.status === 'maint') brMaint++;
+          capSum += parseInt(tr.querySelector('td:nth-child(4)').textContent, 10);
+          assignedSum += parseInt(tr.querySelector('td:nth-child(5)').textContent, 10);
+        }
+        const matchStatus = zoneStatusFilter === 'all' || tr.dataset.status === zoneStatusFilter;
+        const nameText = tr.querySelector('.cell-strong').textContent.toLowerCase();
+        const matchSearch = !zoneSearchText || nameText.includes(zoneSearchText.toLowerCase());
+        const show = inBranch && matchStatus && matchSearch;
+        tr.classList.toggle('hidden', !show);
+        if (show) shown++;
+      });
+      $('zcAll').textContent = brShown;
+      $('zcActive').textContent = brActive;
+      $('zcMaint').textContent = brMaint;
+      $('zoneTabCount').textContent = brShown;
+      $('zoneFootNote').textContent = `표시 ${shown}건 · 합계 ${capSum}석 · 배정 ${assignedSum}석`;
+    }
+
+    function applyAllFilters() {
+      applyRoomFilters();
+      applyZoneFilters();
+      const roomTotal = currentBranch === 'all' ? 14 : Number($('rcAll').textContent);
+      const zoneTotal = currentBranch === 'all' ? 8 : Number($('zcAll').textContent);
+      $('pageSub').textContent = currentBranch === 'all'
+        ? `회의실 14실 · 자율좌석 구역 8개`
+        : `${BRANCH_NAME[currentBranch]} · 회의실 ${roomTotal}실 · 자율좌석 구역 ${zoneTotal}개`;
+    }
+
+    /* ── 드로어 ── */
+    const drawer = $('drawer');
+    const drawerBackdrop = $('drawerBackdrop');
+    let currentDrawerKind = 'room';
+
+    function openDrawerUI() {
+      drawer.classList.add('open');
+      drawerBackdrop.classList.add('open');
+    }
+    function closeDrawerUI() {
+      drawer.classList.remove('open');
+      drawerBackdrop.classList.remove('open');
+    }
+
+    function setTypeUI(kind) {
+      currentDrawerKind = kind;
+      $('fType').querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.type === kind));
+      if (kind === 'room') {
+        $('fLocLabel').textContent = '층·구역';
+        $('fCapLabel').textContent = '수용 인원';
+        $('fCapUnit').textContent = '인';
+        $('fEquipField').classList.remove('hidden');
+        $('fCreditField').classList.remove('hidden');
+      } else {
+        $('fLocLabel').textContent = '층';
+        $('fCapLabel').textContent = '좌석 수';
+        $('fCapUnit').textContent = '석';
+        $('fEquipField').classList.add('hidden');
+        $('fCreditField').classList.add('hidden');
+      }
+    }
+
+    function setStatusUI(isOn, label) {
+      $('fStatusToggle').classList.toggle('on', isOn);
+      $('fStatusLabel').textContent = label;
+      $('fMaintWarn').classList.toggle('hidden', !isOn);
+    }
+
+    function openDrawerForNew(kind) {
+      $('drawerTitle').textContent = kind === 'room' ? '회의실 등록' : '좌석 구역 등록';
+      setTypeUI(kind);
+      $('fBranch').value = currentBranch === 'all' ? 'seongsu' : currentBranch;
+      $('fName').value = '';
+      $('fLoc').value = '';
+      $('fCapValue').value = kind === 'room' ? '4' : '16';
+      document.querySelectorAll('#fEquipField input[type=checkbox]').forEach((cb) => { cb.checked = false; });
+      $('fCredit').value = 20;
+      $('fOpenStart').value = '08:00';
+      $('fOpenEnd').value = '22:00';
+      setStatusUI(false, '운영 중');
+      openDrawerUI();
+    }
+
+    function openDrawerForEdit(kind, id) {
+      const data = kind === 'room' ? ROOMS[id] : ZONES[id];
+      $('drawerTitle').textContent = `공간 수정 — ${data.name}`;
+      setTypeUI(kind);
+      $('fBranch').value = data.branch;
+      $('fName').value = data.name;
+      $('fLoc').value = data.loc;
+      $('fCapValue').value = data.cap;
+      if (kind === 'room') {
+        document.querySelectorAll('#fEquipField input[type=checkbox]').forEach((cb) => { cb.checked = data.equip.includes(cb.dataset.eq); });
+        $('fCredit').value = data.credit;
+      }
+      $('fOpenStart').value = data.start;
+      $('fOpenEnd').value = data.end;
+      const isOn = data.status !== 'active';
+      $('fStatusToggle').classList.toggle('on', isOn);
+      $('fStatusLabel').textContent = data.statusLabel;
+      $('fMaintWarn').classList.toggle('hidden', !isOn);
+      openDrawerUI();
+    }
+
+    $('createBtn').addEventListener('click', () => openDrawerForNew(currentTab));
+
+    document.querySelectorAll('.edit-btn').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDrawerForEdit(btn.dataset.kind, btn.dataset.id);
+      });
+    });
+    document.querySelectorAll('#roomTable tbody tr.row-link').forEach((tr) => {
+      tr.addEventListener('click', () => openDrawerForEdit('room', tr.dataset.id));
+    });
+    document.querySelectorAll('#zoneTable tbody tr.row-link').forEach((tr) => {
+      tr.addEventListener('click', () => openDrawerForEdit('zone', tr.dataset.id));
+    });
+
+    $('fType').querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => setTypeUI(btn.dataset.type));
+    });
+
+    $('fCapMinus').addEventListener('click', () => {
+      const v = Math.max(1, parseInt($('fCapValue').value, 10) - 1);
+      $('fCapValue').value = v;
+    });
+    $('fCapPlus').addEventListener('click', () => {
+      const v = Math.min(60, parseInt($('fCapValue').value, 10) + 1);
+      $('fCapValue').value = v;
+    });
+
+    $('fStatusToggle').addEventListener('click', () => {
+      const willBeOn = !$('fStatusToggle').classList.contains('on');
+      setStatusUI(willBeOn, willBeOn ? '점검 중' : '운영 중');
+    });
+
+    $('fSeeAffected').addEventListener('click', () => { location.href = 'reservations.html'; });
+
+    $('fUpload').addEventListener('click', () => toast('이 시안에서는 사진 업로드가 비활성화되어 있습니다'));
+
+    $('drawerCloseBtn').addEventListener('click', closeDrawerUI);
+    $('drawerBackdrop').addEventListener('click', closeDrawerUI);
+    $('fCancel').addEventListener('click', closeDrawerUI);
+    $('fSave').addEventListener('click', () => {
+      const name = $('fName').value.trim() || '이름 없는 공간';
+      closeDrawerUI();
+      toast(`${name} 정보를 저장했습니다`);
+    });
+
+    applyAllFilters();
+  </script>
+</body>
+</html>

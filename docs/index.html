@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모두라운지 예약 서비스 구축 — 기획 문서</title>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");
+
+  :root{
+    --canvas:#f6f5f4;
+    --surface:#ffffff;
+    --hairline:#e6e6e6;
+    --hairline-strong:#dddddd;
+    --ink:rgba(0,0,0,.95);
+    --ink-secondary:#31302e;
+    --ink-muted:#615d59;
+    --ink-faint:#a39e98;
+    --primary:#0075de;
+    --primary-hover:#0069c8;
+    --primary-tint:rgba(0,117,222,.08);
+    --on-primary:#ffffff;
+    --r-xs:4px; --r-sm:5px; --r-md:8px; --r-lg:12px; --r-full:9999px;
+    --shadow-1: rgba(0,0,0,.01) 0 .175px 1.041px, rgba(0,0,0,.02) 0 .8px 2.925px, rgba(0,0,0,.027) 0 2.025px 7.847px, rgba(0,0,0,.04) 0 4px 18px;
+    --sidebar-w:232px;
+    --font:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,system-ui,"Segoe UI","Apple SD Gothic Neo",Roboto,"Noto Sans KR",Helvetica,Arial,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{margin:0;font-family:var(--font);font-size:14px;line-height:1.55;color:var(--ink);background:var(--canvas);-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,h4{margin:0;font-weight:700;color:var(--ink);}
+  p{margin:0;}
+  a{color:var(--primary);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  .lucide{width:16px;height:16px;stroke-width:2;flex:none;}
+
+  /* ---------- Topbar ---------- */
+  .topbar{background:var(--surface);border-bottom:1px solid var(--hairline);padding:28px 40px;}
+  .topbar-inner{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;}
+  .topbar .eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-muted);}
+  .topbar h1{font-size:26px;line-height:1.25;letter-spacing:-.6px;margin-top:8px;}
+  .topbar .lead{margin-top:8px;font-size:14px;color:var(--ink-muted);max-width:720px;}
+  .stat-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
+  .stat-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--ink-secondary);background:var(--canvas);border:1px solid var(--hairline);border-radius:var(--r-full);white-space:nowrap;}
+  .stat-pill .lucide{width:14px;height:14px;color:var(--ink-muted);}
+  .topbar-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:12px;color:var(--ink-faint);flex:none;}
+
+  /* ---------- Layout ---------- */
+  .layout{display:grid;grid-template-columns:var(--sidebar-w) 1fr;align-items:start;}
+
+  .sidebar{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:24px 12px;border-right:1px solid var(--hairline);display:flex;flex-direction:column;gap:2px;}
+  .side-label{padding:6px 12px 8px;font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-faint);}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:6px 12px;font-size:14px;font-weight:500;color:var(--ink-secondary);border-radius:var(--r-md);cursor:pointer;text-decoration:none;transition:background-color .12s ease,color .12s ease;}
+  .nav-item .num{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;font-size:11px;font-weight:700;color:var(--ink-faint);border:1px solid var(--hairline-strong);border-radius:var(--r-full);flex:none;}
+  .nav-item:hover{background:var(--canvas);color:var(--ink);text-decoration:none;}
+  .nav-item.active{background:var(--primary-tint);color:var(--primary);font-weight:600;}
+  .nav-item.active .num{color:var(--primary);border-color:var(--primary);}
+  .sidebar-foot{margin-top:auto;padding:12px 12px 4px;font-size:11px;color:var(--ink-faint);border-top:1px solid var(--hairline);padding-top:16px;}
+
+  .content{min-width:0;padding:0 40px 80px;}
+  section{scroll-margin-top:32px;padding-top:48px;}
+  section:first-of-type{padding-top:40px;}
+  .sec-head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px;}
+  .sec-head .idx{font-size:13px;font-weight:700;color:var(--primary);}
+  .sec-head h2{font-size:20px;letter-spacing:-.4px;}
+  .sec-sub{font-size:13px;color:var(--ink-muted);margin-bottom:20px;}
+
+  /* ---------- Generic bits ---------- */
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);padding:16px;}
+  .grid{display:grid;gap:16px;}
+  .cols-2{grid-template-columns:1fr 1fr;}
+  .cols-3{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;font-size:11px;font-weight:600;border-radius:var(--r-full);white-space:nowrap;border:1px solid transparent;}
+  .b-user{color:var(--primary);background:var(--primary-tint);}
+  .b-admin{color:var(--on-primary);background:var(--ink);}
+  .b-system{color:var(--ink-secondary);background:var(--canvas);border-color:var(--hairline);}
+  .tag{display:inline-flex;align-items:center;padding:1px 6px;font-size:11px;font-weight:500;color:var(--ink-muted);background:var(--canvas);border-radius:var(--r-xs);white-space:nowrap;}
+  .filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+  .fbtn{padding:6px 14px;font-size:13px;font-weight:500;color:var(--ink-secondary);background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-full);cursor:pointer;transition:background-color .12s ease,border-color .12s ease,color .12s ease;}
+  .fbtn:hover{background:var(--canvas);}
+  .fbtn.active{color:var(--primary);border-color:var(--primary);background:var(--primary-tint);}
+
+  /* ---------- 1. 환경 ---------- */
+  .env-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);overflow:hidden;font-size:13px;}
+  .env-table th,.env-table td{padding:12px 16px;border-bottom:1px solid var(--hairline);text-align:left;vertical-align:top;}
+  .env-table th{font-size:12px;font-weight:600;color:var(--ink-muted);background:var(--canvas);white-space:nowrap;}
+  .env-table tbody tr:last-child td{border-bottom:0;}
+  .env-table td.item{font-weight:600;color:var(--ink-secondary);white-space:nowrap;}
+  .exclude-box{margin-top:20px;padding:16px 18px;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);}
+  .exclude-box h4{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;color:var(--ink-secondary);}
+  .exclude-box ul{margin:0;padding-left:18px;font-size:13px;color:var(--ink-muted);line-height:1.8;}
+
+  /* ---------- 2. 기능 목록 ---------- */
+  .feat-table-wrap{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);overflow:auto;}
+  table.feat{width:100%;border-collapse:collapse;font-size:13px;min-width:1080px;}
+  table.feat th{padding:10px 14px;font-size:12px;font-weight:600;color:var(--ink-muted);text-align:left;background:var(--canvas);border-bottom:1px solid var(--hairline);white-space:nowrap;}
+  table.feat td{padding:11px 14px;border-bottom:1px solid var(--hairline);vertical-align:top;color:var(--ink);}
+  table.feat tbody tr:last-child td{border-bottom:0;}
+  table.feat tbody tr:hover{background:var(--canvas);}
+  table.feat td.fid{font-weight:700;color:var(--ink-secondary);white-space:nowrap;}
+  table.feat td.fname{font-weight:600;white-space:nowrap;}
+  table.feat td.fcat{white-space:nowrap;color:var(--ink-muted);}
+  table.feat td.fdata{font-size:12px;color:var(--ink-faint);}
+  table.feat tr.hide{display:none;}
+
+  /* ---------- 3. 페이지 맵 ---------- */
+  .pm-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:32px;}
+  .pm-card{display:flex;flex-direction:column;gap:8px;padding:16px;}
+  .pm-card.hide{display:none;}
+  .pm-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .pm-top .pid{font-size:12px;font-weight:700;color:var(--ink-faint);font-variant-numeric:tabular-nums;}
+  .pm-card h3{font-size:15px;letter-spacing:-.1px;}
+  .pm-feats{display:flex;gap:4px;flex-wrap:wrap;}
+  .pm-url{font-size:11px;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--ink-faint);}
+  .pm-desc{font-size:13px;color:var(--ink-muted);flex:1;}
+  .pm-next{font-size:12px;color:var(--ink-faint);padding-top:8px;border-top:1px solid var(--hairline);}
+  .pm-next strong{color:var(--ink-secondary);font-weight:600;margin-right:4px;}
+
+  .tree-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .tree-card{padding:0;overflow:hidden;}
+  .tree-card .tree-head{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--hairline);font-size:13px;font-weight:600;color:var(--ink-secondary);background:var(--canvas);}
+  .tree-card pre{margin:0;padding:16px 18px;font-size:12.5px;line-height:1.75;color:var(--ink-secondary);font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;overflow-x:auto;white-space:pre;}
+
+  /* ---------- 4. 화면 시안 ---------- */
+  .screen-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;}
+  .screen-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--hairline);border-radius:var(--r-lg);overflow:hidden;text-decoration:none;color:inherit;transition:box-shadow .12s ease,border-color .12s ease;}
+  .screen-card:hover{box-shadow:var(--shadow-1);border-color:var(--hairline-strong);text-decoration:none;}
+  .screen-card.hide{display:none;}
+  .thumb{height:96px;display:flex;align-items:center;justify-content:center;font-size:34px;}
+  .thumb-user{background:linear-gradient(135deg,#0ea5a0,#22c1dc);}
+  .thumb-admin{background:linear-gradient(135deg,#f6c343,#f59e0b);}
+  .screen-body{display:flex;flex-direction:column;gap:8px;padding:14px 16px 16px;flex:1;}
+  .screen-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .screen-top .pid{font-size:11px;font-weight:700;color:var(--ink-faint);}
+  .screen-body h4{font-size:14px;letter-spacing:-.1px;}
+  .screen-feats{display:flex;gap:4px;flex-wrap:wrap;}
+  .screen-desc{font-size:12.5px;color:var(--ink-muted);flex:1;}
+  .screen-file{font-size:11px;color:var(--ink-faint);font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;padding-top:8px;border-top:1px solid var(--hairline);display:flex;align-items:center;justify-content:space-between;gap:6px;}
+  .screen-file .lucide{width:13px;height:13px;color:var(--ink-faint);transition:transform .12s ease,color .12s ease;}
+  .screen-card:hover .screen-file .lucide{transform:translateX(2px);color:var(--primary);}
+
+  .footer-note{margin-top:48px;padding-top:16px;border-top:1px solid var(--hairline);font-size:12px;color:var(--ink-faint);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+
+  @media (max-width: 1280px){ .screen-grid{grid-template-columns:repeat(3,minmax(0,1fr));} .pm-grid{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  @media (max-width: 980px){ .layout{grid-template-columns:1fr;} .sidebar{position:static;height:auto;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--hairline);} .content{padding:0 20px 60px;} .screen-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .tree-wrap{grid-template-columns:1fr;} .cols-2{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div>
+      <span class="eyebrow"><i data-lucide="building-2"></i>주식회사 모두라운지 · 화면 기획 문서</span>
+      <h1>모두라운지 예약 서비스 구축</h1>
+      <p class="lead">코워킹 스페이스 회의실·자율좌석 예약 서비스입니다. 이용자는 모바일 웹에서 회의실을 예약하거나 자율좌석을 즉시 배정받고, 운영자는 PC 웹에서 예약·공간·회원·공지를 관리합니다.</p>
+      <div class="stat-row">
+        <span class="stat-pill"><i data-lucide="map-pin"></i>3개 지점 (성수·홍대·판교)</span>
+        <span class="stat-pill"><i data-lucide="door-open"></i>회의실 14실</span>
+        <span class="stat-pill"><i data-lucide="armchair"></i>자율좌석 120석</span>
+        <span class="stat-pill"><i data-lucide="list-checks"></i>기능 34개</span>
+        <span class="stat-pill"><i data-lucide="layout-grid"></i>화면 19개</span>
+      </div>
+    </div>
+    <div class="topbar-meta">
+      <span>기준일 2026-10-14</span>
+      <span>버전 v1.0</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <span class="side-label">목차</span>
+    <a class="nav-item active" data-target="sec-env"><span class="num">1</span>환경</a>
+    <a class="nav-item" data-target="sec-feat"><span class="num">2</span>기능 목록</a>
+    <a class="nav-item" data-target="sec-page"><span class="num">3</span>페이지 맵</a>
+    <a class="nav-item" data-target="sec-screens"><span class="num">4</span>화면 시안</a>
+    <div class="sidebar-foot">모두라운지 예약<br>기획 문서 · 2026-10-14</div>
+  </nav>
+
+  <main class="content">
+
+    <!-- ============ 1. 환경 ============ -->
+    <section id="sec-env">
+      <div class="sec-head"><span class="idx">1</span><h2>환경</h2></div>
+      <p class="sec-sub">이용자는 모바일 웹, 운영자는 PC 웹으로 접속합니다. 3개 지점(성수·홍대·판교), 회의실 14실, 자율좌석 120석을 대상으로 운영합니다.</p>
+
+      <table class="env-table">
+        <thead><tr><th>항목</th><th>사용자</th><th>관리자</th></tr></thead>
+        <tbody>
+          <tr><td class="item">플랫폼</td><td>모바일 웹 (반응형, 홈 화면 추가 지원 — 웹 앱 매니페스트)</td><td>PC 웹</td></tr>
+          <tr><td class="item">지원 브라우저</td><td>iOS Safari, Android Chrome 최신 2개 버전</td><td>Chrome, Edge 최신 버전</td></tr>
+          <tr><td class="item">기준 해상도</td><td>가로 360~430px</td><td>가로 1440px 이상</td></tr>
+          <tr><td class="item">인증</td><td>이메일 가입 + 카카오 간편 로그인</td><td>이메일·비밀번호 + 권한 등급 (전체 관리자 / 지점 관리자)</td></tr>
+          <tr><td class="item">알림</td><td>웹 푸시 + 이메일</td><td>없음</td></tr>
+          <tr><td class="item">운영 대상</td><td>3개 지점(성수·홍대·판교), 회의실 14실, 자율좌석 120석</td><td>동일 (지점 관리자는 소속 지점 데이터만 접근)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="exclude-box">
+        <h4><i data-lucide="circle-slash"></i>제외 범위 (계약 범위 밖)</h4>
+        <ul>
+          <li>결제·정산: 크레딧은 화면에 표시만 합니다. 차감·충전은 기존 멤버십 시스템에서 처리합니다.</li>
+          <li>iOS·Android 네이티브 앱 및 앱 스토어 배포</li>
+          <li>출입 게이트·도어락 등 하드웨어 연동 (체크인은 인쇄된 QR을 이용자가 스캔하는 방식으로 한정)</li>
+          <li>다국어 지원</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 2. 기능 목록 ============ -->
+    <section id="sec-feat">
+      <div class="sec-head"><span class="idx">2</span><h2>기능 목록</h2></div>
+      <p class="sec-sub">총 34개 기능입니다. 카테고리 버튼으로 필터링할 수 있습니다.</p>
+
+      <div class="filter-row" id="featFilter">
+        <button class="fbtn active" data-cat="전체">전체 34</button>
+        <button class="fbtn" data-cat="계정">계정 8</button>
+        <button class="fbtn" data-cat="탐색">탐색 4</button>
+        <button class="fbtn" data-cat="예약">예약 8</button>
+        <button class="fbtn" data-cat="알림">알림 2</button>
+        <button class="fbtn" data-cat="대시보드">대시보드 1</button>
+        <button class="fbtn" data-cat="공간 관리">공간 관리 1</button>
+        <button class="fbtn" data-cat="예약 관리">예약 관리 3</button>
+        <button class="fbtn" data-cat="회원 관리">회원 관리 3</button>
+        <button class="fbtn" data-cat="공지 관리">공지 관리 1</button>
+        <button class="fbtn" data-cat="자동화">자동화 2</button>
+        <button class="fbtn" data-cat="통계">통계 1</button>
+      </div>
+
+      <div class="feat-table-wrap">
+        <table class="feat" id="featTable">
+          <thead><tr><th>ID</th><th>기능명</th><th>타겟</th><th>카테고리</th><th>설명</th><th>관련 데이터</th></tr></thead>
+          <tbody>
+            <tr data-cat="계정"><td class="fid">F1</td><td class="fname">이메일 가입</td><td><span class="badge b-user">사용자</span></td><td class="fcat">계정</td><td>이메일·비밀번호로 계정을 만들고 이메일 소유 확인 후 최초 프로필 등록(F4)으로 넘어간다</td><td class="fdata">입력: 이메일, 비밀번호 / 저장: 회원 계정(인증 수단=이메일), 이메일 인증 상태</td></tr>
+            <tr data-cat="계정"><td class="fid">F2</td><td class="fname">이메일 로그인</td><td><span class="badge b-user">사용자</span></td><td class="fcat">계정</td><td>이메일·비밀번호로 로그인하며 비밀번호 재설정을 포함한다</td><td class="fdata">입력: 이메일, 비밀번호 / 출력: 세션 토큰, 프로필 등록 여부</td></tr>
+            <tr data-cat="계정"><td class="fid">F3</td><td class="fname">카카오 간편 로그인</td><td><span class="badge b-user">사용자</span></td><td class="fcat">계정</td><td>카카오 OAuth로 로그인하고 최초 연동이면 회원 생성 후 최초 프로필 등록(F4)으로 이동한다</td><td class="fdata">입력: 카카오 인증 코드 / 저장: 회원 계정(인증 수단=카카오), 카카오 계정 식별자</td></tr>
+            <tr data-cat="계정"><td class="fid">F4</td><td class="fname">최초 프로필 등록 및 약관 동의</td><td><span class="badge b-user">사용자</span></td><td class="fcat">계정</td><td>가입 직후 이름·연락처·소속(개인 또는 법인명)을 등록하고 이용 약관에 동의해야 서비스 이용이 열린다</td><td class="fdata">입력: 이름, 연락처, 소속 유형, 법인명, 약관 동의 / 저장: 회원 프로필, 약관 동의 이력</td></tr>
+            <tr data-cat="계정"><td class="fid">F5</td><td class="fname">마이페이지</td><td><span class="badge b-user">사용자</span></td><td class="fcat">계정</td><td>내 프로필을 확인·수정하고 이번 달 이용 시간·예약 횟수 요약을 보며 로그아웃한다</td><td class="fdata">출력: 프로필, 당월 이용 시간·예약 횟수, 이용 제한 상태 / 입력: 이름, 연락처 수정</td></tr>
+            <tr data-cat="계정"><td class="fid">F6</td><td class="fname">소속 변경 요청</td><td><span class="badge b-user">사용자</span></td><td class="fcat">계정</td><td>소속(개인/법인명) 변경을 관리자에게 요청하고 처리 상태를 확인한다</td><td class="fdata">입력: 변경 희망 소속, 사유 / 저장: 소속 변경 요청(상태: 검토 중/승인/반려)</td></tr>
+            <tr data-cat="계정"><td class="fid">F7</td><td class="fname">알림 수신 설정</td><td><span class="badge b-user">사용자</span></td><td class="fcat">계정</td><td>웹 푸시·이메일 채널과 공지 알림 수신 여부를 켜고 끄며 웹 푸시 권한을 등록한다</td><td class="fdata">입력: 채널별 on/off, 공지 수신 여부 / 저장: 알림 설정, 웹 푸시 구독 토큰</td></tr>
+            <tr data-cat="탐색"><td class="fid">F8</td><td class="fname">홈 화면</td><td><span class="badge b-user">사용자</span></td><td class="fcat">탐색</td><td>현재 지점·오늘 내 예약 요약·운영자 공지 배너를 보여주고 회의실 예약과 자율좌석 배정으로 바로 진입한다</td><td class="fdata">출력: 선택 지점, 오늘 예약 목록, 노출 중 공지, 미읽음 알림 수</td></tr>
+            <tr data-cat="탐색"><td class="fid">F9</td><td class="fname">지점 선택 및 안내</td><td><span class="badge b-user">사용자</span></td><td class="fcat">탐색</td><td>성수·홍대·판교 중 지점을 선택하고 지점별 운영 시간·주소를 확인한다</td><td class="fdata">출력: 지점 목록, 운영 시간, 주소 / 저장: 마지막 선택 지점</td></tr>
+            <tr data-cat="탐색"><td class="fid">F10</td><td class="fname">회의실 목록 조회 및 필터</td><td><span class="badge b-user">사용자</span></td><td class="fcat">탐색</td><td>선택 지점 회의실을 수용 인원·장비·시간당 크레딧과 함께 나열하고 인원·장비·지금 이용 가능 여부로 필터링한다</td><td class="fdata">입력: 필터(수용 인원 2·4·6·10인 이상, 장비, 지금 이용 가능) / 출력: 회의실 카드 목록, 점검 중 여부</td></tr>
+            <tr data-cat="탐색"><td class="fid">F11</td><td class="fname">공간 상세 조회</td><td><span class="badge b-user">사용자</span></td><td class="fcat">탐색</td><td>회의실의 사진·설명·장비·위치(층·구역)·이용 규칙을 보고 예약 시간 선택으로 진입한다</td><td class="fdata">출력: 사진, 설명, 장비 목록, 위치, 이용 규칙, 수용 인원, 시간당 크레딧, 운영 시간</td></tr>
+            <tr data-cat="예약"><td class="fid">F12</td><td class="fname">예약 시간 선택</td><td><span class="badge b-user">사용자</span></td><td class="fcat">예약</td><td>오늘 기준 14일 이내 날짜를 고르고 30분 단위 타임라인에서 연속 시간대(최소 30분·최대 4시간)를 지정한다</td><td class="fdata">입력: 날짜, 시작·종료 슬롯 / 출력: 슬롯별 예약 가능 여부, 선택 요약(소요 시간·예상 크레딧)</td></tr>
+            <tr data-cat="예약"><td class="fid">F13</td><td class="fname">예약 정보 입력</td><td><span class="badge b-user">사용자</span></td><td class="fcat">예약</td><td>예약 목적·참석 인원을 입력하고 선택적으로 참석자 이메일을 초대한 뒤 예약을 요청한다</td><td class="fdata">입력: 목적(회의·면접·교육·기타), 참석 인원, 참석자 이메일 목록 / 저장: 예약 요청</td></tr>
+            <tr data-cat="예약"><td class="fid">F14</td><td class="fname">예약 확정 및 QR 발급</td><td><span class="badge b-user">사용자</span></td><td class="fcat">예약</td><td>예약을 확정하고 예약 번호와 QR 코드를 발급해 확정 화면에 표시한다</td><td class="fdata">저장: 예약(상태=예정), 예약 번호, QR 코드 / 출력: 확정 정보, 확정 알림 트리거</td></tr>
+            <tr data-cat="예약"><td class="fid">F15</td><td class="fname">자율좌석 즉시 배정</td><td><span class="badge b-user">사용자</span></td><td class="fcat">예약</td><td>좌석 구역을 선택하면 당일 잔여 좌석을 시간대 선택 없이 즉시 배정받는다</td><td class="fdata">입력: 지점, 좌석 구역 / 출력: 구역별 잔여 좌석 수, 배정 좌석 번호, QR / 저장: 좌석 배정(당일)</td></tr>
+            <tr data-cat="예약"><td class="fid">F16</td><td class="fname">내 예약 목록</td><td><span class="badge b-user">사용자</span></td><td class="fcat">예약</td><td>예정된 예약과 지난 예약을 탭으로 전환해 상태와 함께 나열한다</td><td class="fdata">출력: 예약·좌석 배정 목록(공간, 지점, 일시, 상태: 예정/진행/완료/취소/노쇼)</td></tr>
+            <tr data-cat="예약"><td class="fid">F17</td><td class="fname">예약 상세 조회</td><td><span class="badge b-user">사용자</span></td><td class="fcat">예약</td><td>예약 번호·QR·공간·일시·목적·참석 정보·상태를 보고 변경·취소·체크인 액션을 수행한다</td><td class="fdata">출력: 예약 전체 정보, QR, 상태 이력, 취소 사유</td></tr>
+            <tr data-cat="예약"><td class="fid">F18</td><td class="fname">예약 변경·취소</td><td><span class="badge b-user">사용자</span></td><td class="fcat">예약</td><td>시작 1시간 전까지 예약 시간·정보를 변경하거나 취소하고 그 이후 취소는 노쇼 처리로 안내한다</td><td class="fdata">입력: 새 날짜·시간, 목적, 인원, 취소 확인 / 저장: 예약 변경 이력, 상태(취소/노쇼)</td></tr>
+            <tr data-cat="예약"><td class="fid">F19</td><td class="fname">체크인</td><td><span class="badge b-user">사용자</span></td><td class="fcat">예약</td><td>회의실 입구 QR 스캔 또는 예약 상세 체크인 버튼(시작 10분 전부터)으로 입실을 확인한다</td><td class="fdata">입력: 공간 QR 코드 값 또는 예약 ID / 저장: 체크인 시각, 상태=진행 중</td></tr>
+            <tr data-cat="알림"><td class="fid">F20</td><td class="fname">알림 목록</td><td><span class="badge b-user">사용자</span></td><td class="fcat">알림</td><td>예약 확정·리마인더·운영자 취소·공지 알림을 읽음/안 읽음 구분으로 보고 탭하면 관련 예약 상세로 이동한다</td><td class="fdata">출력: 알림 목록(유형, 제목, 본문, 시각, 읽음 여부, 연결 대상) / 저장: 읽음 처리</td></tr>
+            <tr data-cat="계정"><td class="fid">F21</td><td class="fname">관리자 로그인 및 권한 분리</td><td><span class="badge b-admin">관리자</span></td><td class="fcat">계정</td><td>이메일·비밀번호로 로그인하고 전체 관리자(모든 지점)/지점 관리자(소속 지점만) 권한에 따라 데이터 범위를 제한한다</td><td class="fdata">입력: 이메일, 비밀번호 / 출력: 세션, 권한 등급, 접근 가능 지점 목록</td></tr>
+            <tr data-cat="대시보드"><td class="fid">F22</td><td class="fname">대시보드</td><td><span class="badge b-admin">관리자</span></td><td class="fcat">대시보드</td><td>오늘 예약·체크인·노쇼 건수와 지점별 회의실 가동률·좌석 점유율 카드, 최근 7일 예약 추이 그래프, 현재 진행 중 예약 목록을 한 화면에 보여준다</td><td class="fdata">출력: 오늘 예약/체크인/노쇼 건수, 지점별 가동률(%), 좌석 점유율(%), 일별 예약 건수(7일), 진행 중 예약 목록</td></tr>
+            <tr data-cat="공간 관리"><td class="fid">F23</td><td class="fname">공간 관리</td><td><span class="badge b-admin">관리자</span></td><td class="fcat">공간 관리</td><td>회의실·좌석 구역을 등록·수정하고 수용 인원·장비 태그·운영 시간·시간당 크레딧·사진을 관리하며 점검 중 비활성화로 신규 예약을 차단한다</td><td class="fdata">입력: 지점, 이름, 유형, 위치, 수용 인원/좌석 수, 장비 태그, 운영 시간, 크레딧, 사진, 설명, 이용 규칙, 비활성화 기간·사유 / 저장: 공간 마스터, 상태</td></tr>
+            <tr data-cat="예약 관리"><td class="fid">F24</td><td class="fname">예약 목록 검색·필터</td><td><span class="badge b-admin">관리자</span></td><td class="fcat">예약 관리</td><td>전체 예약을 기간·지점·공간·상태·회원명으로 검색·필터해 나열한다</td><td class="fdata">입력: 기간, 지점, 공간, 상태, 회원명 / 출력: 예약 목록(예약 번호, 회원, 소속, 공간, 일시, 상태, 체크인 시각)</td></tr>
+            <tr data-cat="예약 관리"><td class="fid">F25</td><td class="fname">예약 상세 및 강제 취소</td><td><span class="badge b-admin">관리자</span></td><td class="fcat">예약 관리</td><td>예약 상세와 상태 이력을 확인하고 사유를 입력해 강제 취소하면 이용자에게 알림이 발송된다</td><td class="fdata">출력: 예약 전체 정보, 회원 정보, 상태 이력 / 입력: 취소 사유(필수) / 저장: 상태=취소(운영자), 취소 사유</td></tr>
+            <tr data-cat="예약 관리"><td class="fid">F26</td><td class="fname">노쇼 수동 처리·해제</td><td><span class="badge b-admin">관리자</span></td><td class="fcat">예약 관리</td><td>예약을 수동으로 노쇼 처리하거나 잘못 판정된 노쇼를 해제하고 회원 노쇼 횟수를 재계산한다</td><td class="fdata">입력: 처리 사유 / 저장: 상태(노쇼/완료), 노쇼 횟수 증감, 처리자·시각</td></tr>
+            <tr data-cat="회원 관리"><td class="fid">F27</td><td class="fname">회원 목록·상세</td><td><span class="badge b-admin">관리자</span></td><td class="fcat">회원 관리</td><td>회원을 소속·가입일·최근 이용일·누적 이용 시간·노쇼 횟수와 함께 조회하고 상세에서 소속 변경 요청을 처리한다</td><td class="fdata">입력: 검색어, 소속·제한 상태 필터 / 출력: 회원 목록·상세 / 저장: 소속 변경 요청 승인·반려</td></tr>
+            <tr data-cat="회원 관리"><td class="fid">F28</td><td class="fname">법인별 회원 그룹 조회</td><td><span class="badge b-admin">관리자</span></td><td class="fcat">회원 관리</td><td>소속 법인명 기준으로 회원을 묶어 인원 수·합산 이용 시간·노쇼 합계를 보고 그룹 내 회원 목록으로 들어간다</td><td class="fdata">출력: 법인 목록(인원 수, 합산 이용 시간, 노쇼 합계), 법인별 회원 목록</td></tr>
+            <tr data-cat="회원 관리"><td class="fid">F29</td><td class="fname">이용 제한 수동 설정·해제</td><td><span class="badge b-admin">관리자</span></td><td class="fcat">회원 관리</td><td>회원에게 기간·사유를 지정해 이용 제한을 걸거나 자동 제한을 포함해 해제한다</td><td class="fdata">입력: 제한 기간, 사유 / 저장: 이용 제한(시작·종료, 유형: 자동/수동, 사유), 이력</td></tr>
+            <tr data-cat="공지 관리"><td class="fid">F30</td><td class="fname">공지 등록·수정·삭제</td><td><span class="badge b-admin">관리자</span></td><td class="fcat">공지 관리</td><td>지점별 공지를 노출 기간과 함께 등록·수정·삭제하면 이용자 홈 배너와 알림으로 노출된다</td><td class="fdata">입력: 제목, 내용, 대상 지점, 노출 시작·종료, 알림 발송 여부 / 저장: 공지 / 출력: 노출 상태</td></tr>
+            <tr data-cat="자동화"><td class="fid">F31</td><td class="fname">노쇼 자동 판정</td><td><span class="badge b-system">시스템</span></td><td class="fcat">자동화</td><td>예약 시작 후 15분 내 체크인이 없으면 노쇼로 전환하고 회원 노쇼 횟수를 올린 뒤 이용자에게 알린다 (결과는 F16·F17·F24·F27에 노출)</td><td class="fdata">입력: 예약 시작 시각, 체크인 기록 / 저장: 상태=노쇼, 노쇼 횟수 / 출력: 노쇼 알림 트리거</td></tr>
+            <tr data-cat="알림"><td class="fid">F32</td><td class="fname">알림 발송 (리마인더 + 이벤트)</td><td><span class="badge b-system">시스템</span></td><td class="fcat">알림</td><td>예약 시작 10분 전 리마인더와 예약 확정·운영자 취소·노쇼·이용 제한·공지·소속 변경 결과 등 이벤트 알림을 웹 푸시·이메일로 발송하고 참석자 초대 메일을 보낸다 (결과는 F20에 노출)</td><td class="fdata">입력: 예정 예약 시각, 이벤트 유형, 대상 회원, 알림 설정, 푸시 토큰 / 저장: 발송 스케줄, 알림 레코드, 발송 결과</td></tr>
+            <tr data-cat="자동화"><td class="fid">F33</td><td class="fname">노쇼 누적 자동 이용 제한</td><td><span class="badge b-system">시스템</span></td><td class="fcat">자동화</td><td>노쇼 3회 누적 시 자동으로 7일 이용 제한을 설정하고 만료 시 해제한다 (결과는 F5·F27·F29에 노출)</td><td class="fdata">입력: 노쇼 횟수 / 저장: 이용 제한(유형=자동, 7일), 카운터 리셋 / 출력: 제한 알림 트리거</td></tr>
+            <tr data-cat="통계"><td class="fid">F34</td><td class="fname">월별 이용 통계 집계</td><td><span class="badge b-system">시스템</span></td><td class="fcat">통계</td><td>지점·공간·회원 단위로 월별 이용 시간·예약·체크인·취소·노쇼 건수를 집계한다 (결과는 F5·F22·F27·F28에 노출, 별도 리포트 화면 없음)</td><td class="fdata">입력: 완료된 예약·좌석 배정 / 저장: 월별 통계(지점·공간·회원 단위)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ 3. 페이지 맵 ============ -->
+    <section id="sec-page">
+      <div class="sec-head"><span class="idx">3</span><h2>페이지 맵</h2></div>
+      <p class="sec-sub">총 19개 화면입니다 (이용자 12 · 운영자 7). 타겟 버튼으로 필터링할 수 있습니다.</p>
+
+      <div class="filter-row" id="pageFilter">
+        <button class="fbtn active" data-target="전체">전체 19</button>
+        <button class="fbtn" data-target="사용자">사용자 12</button>
+        <button class="fbtn" data-target="관리자">관리자 7</button>
+      </div>
+
+      <div class="pm-grid" id="pmGrid">
+        <article class="card pm-card" data-target="사용자">
+          <div class="pm-top"><span class="pid">P1</span><span class="badge b-user">사용자</span></div>
+          <h3>스플래시</h3>
+          <div class="pm-feats"><span class="tag">전제 동작</span></div>
+          <p class="pm-url">/splash</p>
+          <p class="pm-desc">세션 확인 후 자동으로 다음 화면으로 이동합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P2, P4 (세션 유지 시)</p>
+        </article>
+        <article class="card pm-card" data-target="사용자">
+          <div class="pm-top"><span class="pid">P2</span><span class="badge b-user">사용자</span></div>
+          <h3>로그인/회원가입</h3>
+          <div class="pm-feats"><span class="tag">F1</span><span class="tag">F2</span><span class="tag">F3</span></div>
+          <p class="pm-url">/login</p>
+          <p class="pm-desc">이메일 가입·로그인, 카카오 간편 로그인을 제공합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P3 (신규 가입), P4 (기존 회원)</p>
+        </article>
+        <article class="card pm-card" data-target="사용자">
+          <div class="pm-top"><span class="pid">P3</span><span class="badge b-user">사용자</span></div>
+          <h3>최초 프로필 등록</h3>
+          <div class="pm-feats"><span class="tag">F4</span></div>
+          <p class="pm-url">/onboarding</p>
+          <p class="pm-desc">이름·연락처·소속을 등록하고 약관에 동의합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P4</p>
+        </article>
+        <article class="card pm-card" data-target="사용자">
+          <div class="pm-top"><span class="pid">P4</span><span class="badge b-user">사용자</span></div>
+          <h3>홈</h3>
+          <div class="pm-feats"><span class="tag">F8</span><span class="tag">F9</span><span class="tag">F19</span><span class="tag">F20</span><span class="tag">F30</span></div>
+          <p class="pm-url">/home</p>
+          <p class="pm-desc">지점 선택, 공지 배너, 오늘 예약 요약, 바로 예약 진입을 제공합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P5, P9, P10, P11, P12</p>
+        </article>
+        <article class="card pm-card" data-target="사용자">
+          <div class="pm-top"><span class="pid">P5</span><span class="badge b-user">사용자</span></div>
+          <h3>공간 목록</h3>
+          <div class="pm-feats"><span class="tag">F10</span><span class="tag">F15</span></div>
+          <p class="pm-url">/spaces</p>
+          <p class="pm-desc">회의실 목록 필터와 자율좌석 구역 즉시 배정을 제공합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P6 (회의실 카드), P8 (자율좌석 배정 결과)</p>
+        </article>
+        <article class="card pm-card" data-target="사용자">
+          <div class="pm-top"><span class="pid">P6</span><span class="badge b-user">사용자</span></div>
+          <h3>공간 상세</h3>
+          <div class="pm-feats"><span class="tag">F11</span></div>
+          <p class="pm-url">/spaces/:id</p>
+          <p class="pm-desc">사진·설명·장비·위치·이용 규칙을 보고 예약을 시작합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P7 (예약하기)</p>
+        </article>
+        <article class="card pm-card" data-target="사용자">
+          <div class="pm-top"><span class="pid">P7</span><span class="badge b-user">사용자</span></div>
+          <h3>예약 시간·정보 입력</h3>
+          <div class="pm-feats"><span class="tag">F12</span><span class="tag">F13</span></div>
+          <p class="pm-url">/spaces/:id/reserve</p>
+          <p class="pm-desc">14일 내 날짜와 30분 슬롯을 선택하고 예약 정보를 입력합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P8</p>
+        </article>
+        <article class="card pm-card" data-target="사용자">
+          <div class="pm-top"><span class="pid">P8</span><span class="badge b-user">사용자</span></div>
+          <h3>예약 확정</h3>
+          <div class="pm-feats"><span class="tag">F14</span><span class="tag">F15</span></div>
+          <p class="pm-url">/reservations/confirm</p>
+          <p class="pm-desc">예약 번호·QR을 발급하거나 자율좌석 배정 결과를 표시합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P9, P10</p>
+        </article>
+        <article class="card pm-card" data-target="사용자">
+          <div class="pm-top"><span class="pid">P9</span><span class="badge b-user">사용자</span></div>
+          <h3>내 예약 목록</h3>
+          <div class="pm-feats"><span class="tag">F16</span><span class="tag">F31</span></div>
+          <p class="pm-url">/reservations</p>
+          <p class="pm-desc">예정·지난 예약을 탭으로 전환해 상태와 함께 나열합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P10</p>
+        </article>
+        <article class="card pm-card" data-target="사용자">
+          <div class="pm-top"><span class="pid">P10</span><span class="badge b-user">사용자</span></div>
+          <h3>예약 상세</h3>
+          <div class="pm-feats"><span class="tag">F17</span><span class="tag">F18</span><span class="tag">F19</span><span class="tag">F15</span><span class="tag">F31</span></div>
+          <p class="pm-url">/reservations/:id</p>
+          <p class="pm-desc">QR·일시·참석 정보를 확인하고 변경·취소·체크인·좌석 반납을 수행합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P9, P7 (시간 변경 시 재사용)</p>
+        </article>
+        <article class="card pm-card" data-target="사용자">
+          <div class="pm-top"><span class="pid">P11</span><span class="badge b-user">사용자</span></div>
+          <h3>알림</h3>
+          <div class="pm-feats"><span class="tag">F20</span><span class="tag">F32</span></div>
+          <p class="pm-url">/notifications</p>
+          <p class="pm-desc">확정·리마인더·운영자 취소·공지 알림을 확인하고 읽음 처리합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P10</p>
+        </article>
+        <article class="card pm-card" data-target="사용자">
+          <div class="pm-top"><span class="pid">P12</span><span class="badge b-user">사용자</span></div>
+          <h3>마이페이지</h3>
+          <div class="pm-feats"><span class="tag">F5</span><span class="tag">F6</span><span class="tag">F7</span><span class="tag">F33</span><span class="tag">F34</span></div>
+          <p class="pm-url">/mypage</p>
+          <p class="pm-desc">프로필·이용 요약을 확인하고 소속 변경·알림 설정·로그아웃을 수행합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P2 (로그아웃)</p>
+        </article>
+
+        <article class="card pm-card" data-target="관리자">
+          <div class="pm-top"><span class="pid">P13</span><span class="badge b-admin">관리자</span></div>
+          <h3>관리자 로그인</h3>
+          <div class="pm-feats"><span class="tag">F21</span></div>
+          <p class="pm-url">/admin/login</p>
+          <p class="pm-desc">이메일·비밀번호로 로그인하며 권한 등급에 따라 데이터 범위가 제한됩니다.</p>
+          <p class="pm-next"><strong>다음</strong>P14</p>
+        </article>
+        <article class="card pm-card" data-target="관리자">
+          <div class="pm-top"><span class="pid">P14</span><span class="badge b-admin">관리자</span></div>
+          <h3>대시보드</h3>
+          <div class="pm-feats"><span class="tag">F22</span><span class="tag">F34</span></div>
+          <p class="pm-url">/admin/dashboard</p>
+          <p class="pm-desc">오늘 KPI, 지점별 가동률·점유율, 7일 추이, 진행 중 예약을 보여줍니다.</p>
+          <p class="pm-next"><strong>다음</strong>P16</p>
+        </article>
+        <article class="card pm-card" data-target="관리자">
+          <div class="pm-top"><span class="pid">P15</span><span class="badge b-admin">관리자</span></div>
+          <h3>공간 관리</h3>
+          <div class="pm-feats"><span class="tag">F23</span></div>
+          <p class="pm-url">/admin/spaces</p>
+          <p class="pm-desc">회의실·좌석 구역을 등록·수정하고 점검 중으로 비활성화합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P16 (비활성화 영향예약 강제취소 진입)</p>
+        </article>
+        <article class="card pm-card" data-target="관리자">
+          <div class="pm-top"><span class="pid">P16</span><span class="badge b-admin">관리자</span></div>
+          <h3>예약 관리</h3>
+          <div class="pm-feats"><span class="tag">F24</span><span class="tag">F25</span><span class="tag">F26</span><span class="tag">F31</span></div>
+          <p class="pm-url">/admin/reservations</p>
+          <p class="pm-desc">예약을 검색·필터하고 상세 드로어에서 강제 취소·노쇼 처리를 수행합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P18 (회원 정보 링크)</p>
+        </article>
+        <article class="card pm-card" data-target="관리자">
+          <div class="pm-top"><span class="pid">P17</span><span class="badge b-admin">관리자</span></div>
+          <h3>회원 관리</h3>
+          <div class="pm-feats"><span class="tag">F27</span><span class="tag">F28</span><span class="tag">F31</span><span class="tag">F33</span><span class="tag">F34</span></div>
+          <p class="pm-url">/admin/members</p>
+          <p class="pm-desc">회원 목록과 법인별 그룹을 조회하고 이용 현황을 확인합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P18</p>
+        </article>
+        <article class="card pm-card" data-target="관리자">
+          <div class="pm-top"><span class="pid">P18</span><span class="badge b-admin">관리자</span></div>
+          <h3>회원 상세</h3>
+          <div class="pm-feats"><span class="tag">F27</span><span class="tag">F29</span><span class="tag">F33</span><span class="tag">F34</span></div>
+          <p class="pm-url">/admin/members/:id</p>
+          <p class="pm-desc">프로필·예약 내역을 확인하고 이용 제한, 소속 변경 승인·반려를 처리합니다.</p>
+          <p class="pm-next"><strong>다음</strong>P17</p>
+        </article>
+        <article class="card pm-card" data-target="관리자">
+          <div class="pm-top"><span class="pid">P19</span><span class="badge b-admin">관리자</span></div>
+          <h3>공지 관리</h3>
+          <div class="pm-feats"><span class="tag">F30</span></div>
+          <p class="pm-url">/admin/notices</p>
+          <p class="pm-desc">지점별 공지를 노출 기간과 함께 등록·수정·삭제합니다.</p>
+          <p class="pm-next"><strong>다음</strong>-</p>
+        </article>
+      </div>
+
+      <div class="tree-wrap">
+        <div class="card tree-card">
+          <div class="tree-head"><i data-lucide="smartphone"></i>페이지 맵 — 사용자 (12)</div>
+          <pre>P1 스플래시
+ └─ P2 로그인/회원가입
+      ├─ P3 최초 프로필 등록 (최초 가입 시)
+      │    └─ P4 홈
+      └─ P4 홈 (기존 회원 직행)
+           ├─ P5 공간 목록 (탭바: 공간)
+           │    ├─ P6 공간 상세 (회의실)
+           │    │    └─ P7 예약 시간·정보 입력
+           │    │         └─ P8 예약 확정
+           │    │              ├─ P9 내 예약 목록
+           │    │              └─ P10 예약 상세
+           │    └─ P8 예약 확정 (자율좌석 즉시배정)
+           │         └─ P10 예약 상세 (좌석 정보·반납)
+           ├─ P9 내 예약 목록 (탭바: 내 예약)
+           │    └─ P10 예약 상세
+           │         └─ P7 예약 시간·정보 입력 (예약 변경 시 재사용)
+           ├─ P11 알림 (탭바: 알림)
+           │    └─ P10 예약 상세
+           └─ P12 마이페이지 (탭바: 마이)
+                └─ P2 로그인 (로그아웃)</pre>
+        </div>
+        <div class="card tree-card">
+          <div class="tree-head"><i data-lucide="monitor"></i>페이지 맵 — 관리자 (7)</div>
+          <pre>P13 관리자 로그인
+ └─ P14 대시보드
+      ├─ P15 공간 관리
+      │    └─ P16 예약 관리 (점검 등록 시 영향예약 드로어로 진입)
+      ├─ P16 예약 관리 (상세·강제취소·노쇼 수동처리 드로어 포함)
+      │    └─ P18 회원 상세
+      ├─ P17 회원 관리 (탭: 회원 목록 / 법인 그룹)
+      │    └─ P18 회원 상세 (이용 제한, 소속 변경 승인·반려)
+      │         └─ P17 회원 관리 (목록으로)
+      └─ P19 공지 관리</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 4. 화면 시안 ============ -->
+    <section id="sec-screens">
+      <div class="sec-head"><span class="idx">4</span><h2>화면 시안</h2></div>
+      <p class="sec-sub">카드를 클릭하면 실제 화면 시안이 새 탭에서 열립니다. 시안 안의 버튼·탭·링크는 실제로 동작합니다.</p>
+
+      <div class="filter-row" id="screenFilter">
+        <button class="fbtn active" data-target="전체">전체 19</button>
+        <button class="fbtn" data-target="사용자">사용자 12</button>
+        <button class="fbtn" data-target="관리자">관리자 7</button>
+      </div>
+
+      <div class="screen-grid" id="screenGrid">
+        <a class="screen-card" data-target="사용자" href="../pages/user/splash.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-user"><span>📱</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P1</span><span class="badge b-user">사용자</span></div>
+            <h4>스플래시</h4>
+            <div class="screen-feats"><span class="tag">전제 동작</span></div>
+            <p class="screen-desc">세션 확인 후 1.8초 뒤 로그인 또는 홈으로 자동 이동</p>
+            <div class="screen-file">user/splash.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="사용자" href="../pages/user/login.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-user"><span>📱</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P2</span><span class="badge b-user">사용자</span></div>
+            <h4>로그인/회원가입</h4>
+            <div class="screen-feats"><span class="tag">F1</span><span class="tag">F2</span><span class="tag">F3</span></div>
+            <p class="screen-desc">이메일 가입·로그인, 카카오 간편 로그인, 비밀번호 재설정</p>
+            <div class="screen-file">user/login.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="사용자" href="../pages/user/onboarding.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-user"><span>📱</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P3</span><span class="badge b-user">사용자</span></div>
+            <h4>최초 프로필 등록</h4>
+            <div class="screen-feats"><span class="tag">F4</span></div>
+            <p class="screen-desc">이름·연락처·소속(개인/법인) 입력과 약관 동의</p>
+            <div class="screen-file">user/onboarding.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="사용자" href="../pages/user/home.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-user"><span>📱</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P4</span><span class="badge b-user">사용자</span></div>
+            <h4>홈</h4>
+            <div class="screen-feats"><span class="tag">F8</span><span class="tag">F9</span><span class="tag">F19</span><span class="tag">F20</span><span class="tag">F30</span></div>
+            <p class="screen-desc">지점 선택, 공지 배너, 오늘 내 예약·체크인, 바로 예약 진입</p>
+            <div class="screen-file">user/home.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="사용자" href="../pages/user/spaces.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-user"><span>📱</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P5</span><span class="badge b-user">사용자</span></div>
+            <h4>공간 목록</h4>
+            <div class="screen-feats"><span class="tag">F10</span><span class="tag">F15</span></div>
+            <p class="screen-desc">회의실 카드·인원/장비 필터, 자율좌석 구역 즉시 배정</p>
+            <div class="screen-file">user/spaces.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="사용자" href="../pages/user/space-detail.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-user"><span>📱</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P6</span><span class="badge b-user">사용자</span></div>
+            <h4>공간 상세</h4>
+            <div class="screen-feats"><span class="tag">F11</span></div>
+            <p class="screen-desc">사진·설명·장비·위치·이용 규칙, 예약하기 진입</p>
+            <div class="screen-file">user/space-detail.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="사용자" href="../pages/user/reserve.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-user"><span>📱</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P7</span><span class="badge b-user">사용자</span></div>
+            <h4>예약 시간·정보 입력</h4>
+            <div class="screen-feats"><span class="tag">F12</span><span class="tag">F13</span></div>
+            <p class="screen-desc">14일 내 날짜·30분 슬롯 선택, 목적·인원·참석자 초대</p>
+            <div class="screen-file">user/reserve.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="사용자" href="../pages/user/reservation-confirm.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-user"><span>📱</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P8</span><span class="badge b-user">사용자</span></div>
+            <h4>예약 확정</h4>
+            <div class="screen-feats"><span class="tag">F14</span><span class="tag">F15</span></div>
+            <p class="screen-desc">예약 번호·QR 발급, 자율좌석 배정 결과 표시</p>
+            <div class="screen-file">user/reservation-confirm.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="사용자" href="../pages/user/my-reservations.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-user"><span>📱</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P9</span><span class="badge b-user">사용자</span></div>
+            <h4>내 예약 목록</h4>
+            <div class="screen-feats"><span class="tag">F16</span><span class="tag">F31</span></div>
+            <p class="screen-desc">예정/지난 예약 탭, 상태 배지(예정·진행·완료·취소·노쇼)</p>
+            <div class="screen-file">user/my-reservations.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="사용자" href="../pages/user/reservation-detail.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-user"><span>📱</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P10</span><span class="badge b-user">사용자</span></div>
+            <h4>예약 상세</h4>
+            <div class="screen-feats"><span class="tag">F17</span><span class="tag">F18</span><span class="tag">F19</span><span class="tag">F15</span></div>
+            <p class="screen-desc">QR·일시·참석 정보, 변경·취소·체크인, 좌석 반납</p>
+            <div class="screen-file">user/reservation-detail.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="사용자" href="../pages/user/notifications.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-user"><span>📱</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P11</span><span class="badge b-user">사용자</span></div>
+            <h4>알림</h4>
+            <div class="screen-feats"><span class="tag">F20</span><span class="tag">F32</span></div>
+            <p class="screen-desc">확정·리마인더·운영자 취소·공지 알림, 읽음 처리</p>
+            <div class="screen-file">user/notifications.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="사용자" href="../pages/user/mypage.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-user"><span>📱</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P12</span><span class="badge b-user">사용자</span></div>
+            <h4>마이페이지</h4>
+            <div class="screen-feats"><span class="tag">F5</span><span class="tag">F6</span><span class="tag">F7</span><span class="tag">F33</span></div>
+            <p class="screen-desc">프로필·이번 달 이용 요약, 소속 변경 요청, 알림 설정, 로그아웃</p>
+            <div class="screen-file">user/mypage.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+
+        <a class="screen-card" data-target="관리자" href="../pages/admin/login.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-admin"><span>🖥️</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P13</span><span class="badge b-admin">관리자</span></div>
+            <h4>관리자 로그인</h4>
+            <div class="screen-feats"><span class="tag">F21</span></div>
+            <p class="screen-desc">이메일·비밀번호 로그인, 전체/지점 관리자 권한 분리</p>
+            <div class="screen-file">admin/login.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="관리자" href="../pages/admin/dashboard.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-admin"><span>🖥️</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P14</span><span class="badge b-admin">관리자</span></div>
+            <h4>대시보드</h4>
+            <div class="screen-feats"><span class="tag">F22</span><span class="tag">F34</span></div>
+            <p class="screen-desc">오늘 KPI, 지점별 가동률·좌석 점유율, 7일 추이, 진행 중 예약</p>
+            <div class="screen-file">admin/dashboard.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="관리자" href="../pages/admin/spaces.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-admin"><span>🖥️</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P15</span><span class="badge b-admin">관리자</span></div>
+            <h4>공간 관리</h4>
+            <div class="screen-feats"><span class="tag">F23</span></div>
+            <p class="screen-desc">회의실·좌석 구역 등록·수정, 점검 중 비활성화</p>
+            <div class="screen-file">admin/spaces.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="관리자" href="../pages/admin/reservations.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-admin"><span>🖥️</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P16</span><span class="badge b-admin">관리자</span></div>
+            <h4>예약 관리</h4>
+            <div class="screen-feats"><span class="tag">F24</span><span class="tag">F25</span><span class="tag">F26</span></div>
+            <p class="screen-desc">기간·지점·상태·회원 검색, 상세 드로어, 강제 취소·노쇼 처리</p>
+            <div class="screen-file">admin/reservations.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="관리자" href="../pages/admin/members.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-admin"><span>🖥️</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P17</span><span class="badge b-admin">관리자</span></div>
+            <h4>회원 관리</h4>
+            <div class="screen-feats"><span class="tag">F27</span><span class="tag">F28</span><span class="tag">F33</span></div>
+            <p class="screen-desc">회원 목록·법인 그룹 탭, 노쇼 횟수·이용 제한 상태</p>
+            <div class="screen-file">admin/members.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="관리자" href="../pages/admin/member-detail.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-admin"><span>🖥️</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P18</span><span class="badge b-admin">관리자</span></div>
+            <h4>회원 상세</h4>
+            <div class="screen-feats"><span class="tag">F27</span><span class="tag">F29</span><span class="tag">F34</span></div>
+            <p class="screen-desc">프로필·예약 내역·월별 이용, 이용 제한 설정, 소속 변경 승인·반려</p>
+            <div class="screen-file">admin/member-detail.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+        <a class="screen-card" data-target="관리자" href="../pages/admin/notices.html" target="_blank" rel="noopener">
+          <div class="thumb thumb-admin"><span>🖥️</span></div>
+          <div class="screen-body">
+            <div class="screen-top"><span class="pid">P19</span><span class="badge b-admin">관리자</span></div>
+            <h4>공지 관리</h4>
+            <div class="screen-feats"><span class="tag">F30</span></div>
+            <p class="screen-desc">지점별 공지 등록·수정·삭제, 노출 기간·알림 발송</p>
+            <div class="screen-file">admin/notices.html<i data-lucide="arrow-up-right"></i></div>
+          </div>
+        </a>
+      </div>
+
+      <div class="footer-note">
+        <span>모두라운지 예약 서비스 구축 · 화면 기획 문서</span>
+        <span>전체 화면 허브 → <a href="../pages/index.html">pages/index.html</a></span>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  lucide.createIcons();
+
+  // ---- 사이드바 클릭 스크롤 + active ----
+  const navItems = Array.from(document.querySelectorAll('.nav-item'));
+  const sections = navItems.map(n => document.getElementById(n.dataset.target));
+
+  navItems.forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = document.getElementById(item.dataset.target);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  const spy = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navItems.forEach(n => n.classList.toggle('active', n.dataset.target === id));
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px', threshold: 0 });
+  sections.forEach(s => s && spy.observe(s));
+
+  // ---- 2. 기능 목록 카테고리 필터 ----
+  const featFilter = document.getElementById('featFilter');
+  const featRows = Array.from(document.querySelectorAll('#featTable tbody tr'));
+  featFilter.querySelectorAll('.fbtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      featFilter.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const cat = btn.dataset.cat;
+      featRows.forEach(row => {
+        row.classList.toggle('hide', cat !== '전체' && row.dataset.cat !== cat);
+      });
+    });
+  });
+
+  // ---- 3. 페이지 맵 타겟 필터 ----
+  const pageFilter = document.getElementById('pageFilter');
+  const pmCards = Array.from(document.querySelectorAll('#pmGrid .pm-card'));
+  pageFilter.querySelectorAll('.fbtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pageFilter.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const t = btn.dataset.target;
+      pmCards.forEach(card => {
+        card.classList.toggle('hide', t !== '전체' && card.dataset.target !== t);
+      });
+    });
+  });
+
+  // ---- 4. 화면 시안 타겟 필터 ----
+  const screenFilter = document.getElementById('screenFilter');
+  const screenCards = Array.from(document.querySelectorAll('#screenGrid .screen-card'));
+  screenFilter.querySelectorAll('.fbtn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      screenFilter.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const t = btn.dataset.target;
+      screenCards.forEach(card => {
+        card.classList.toggle('hide', t !== '전체' && card.dataset.target !== t);
+      });
+    });
+  });
+</script>
+
+</body>
+</html>

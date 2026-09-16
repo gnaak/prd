@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P18 회원 상세 — 모두라운지 관리자</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 회원 상세 고유 스타일 (사이드바·헤더는 common.css 클래스만 사용) ── */
+    .detail-grid { grid-template-columns: 360px 1fr; align-items: start; }
+    .bars-wrap { padding-top: 8px; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--hairline); }
+    .stat-grid > div + div { border-left: 1px solid var(--hairline); padding-left: 12px; }
+    .stat-val { margin-top: 2px; font-size: 20px; font-weight: 700; letter-spacing: -0.4px; font-variant-numeric: tabular-nums; }
+    .stat-val small { font-size: 12px; font-weight: 500; color: var(--ink-muted); margin-left: 1px; }
+
+    .limit-row { display: flex; align-items: flex-start; gap: 12px; }
+    .limit-row .icon-tile { color: var(--primary); }
+    .limit-row.warn .icon-tile { color: var(--ink-secondary); background: var(--surface); border-color: var(--ink); }
+
+    @media (max-width: 1100px) {
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin">
+
+    <!-- 좌측 GNB (전 관리자 페이지 공통) -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-mark"><i data-lucide="building-2"></i></span>
+        <div>모두라운지<small>운영자 콘솔</small></div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+        <a class="nav-item" href="spaces.html"><i data-lucide="door-open"></i>공간 관리</a>
+        <a class="nav-item" href="reservations.html"><i data-lucide="calendar-check"></i>예약 관리</a>
+        <a class="nav-item active" href="members.html"><i data-lucide="users"></i>회원 관리</a>
+        <a class="nav-item" href="notices.html"><i data-lucide="megaphone"></i>공지 관리</a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="sidebar-user">
+          <span class="avatar">김</span>
+          <div class="who">
+            <div class="name">김하늘</div>
+            <div class="role">전체 관리자 · 3개 지점</div>
+          </div>
+          <button class="icon-btn sm" onclick="location.href='login.html'" title="로그아웃" aria-label="로그아웃"><i data-lucide="log-out"></i></button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+
+      <!-- 페이지 헤더: 뒤로가기 + 회원명 + 연락처 + 액션 -->
+      <header class="admin-header">
+        <button class="icon-btn" onclick="location.href='members.html'" aria-label="회원 목록으로"><i data-lucide="arrow-left"></i></button>
+        <h1>박서연</h1>
+        <span class="sub" id="headerSub">seoyeon.park@bridgelab.co.kr · 주식회사 브릿지랩</span>
+        <div class="admin-header-actions">
+          <button class="btn btn-outline" id="openLimitModalBtn"><i data-lucide="shield-alert"></i>이용 제한 설정</button>
+          <button class="btn btn-utility" id="memoBtn"><i data-lucide="sticky-note"></i>메모</button>
+        </div>
+      </header>
+
+      <div class="admin-body">
+        <div class="grid detail-grid">
+
+          <!-- ── 좌: 프로필 ── -->
+          <div class="stack stack-lg">
+
+            <!-- 프로필 카드 -->
+            <div class="card">
+              <div class="row" style="align-items:flex-start; gap:14px;">
+                <span class="avatar lg">서</span>
+                <div class="grow">
+                  <div class="row-between">
+                    <h3>박서연</h3>
+                    <span class="badge badge-primary" id="statusBadge">정상</span>
+                  </div>
+                  <dl class="kv mt-12">
+                    <dt>연락처</dt><dd>010-4821-7732</dd>
+                    <dt>소속</dt><dd id="orgVal">주식회사 브릿지랩</dd>
+                    <dt>주 지점</dt><dd>성수</dd>
+                    <dt>가입</dt><dd>2026-03-12</dd>
+                    <dt>최근 이용</dt><dd>오늘 14:00</dd>
+                    <dt>누적</dt><dd>128.5h · 47건</dd>
+                    <dt>노쇼</dt><dd>1회</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+
+            <!-- 소속 변경 요청 카드 (F27) -->
+            <div class="card card-soft" id="orgReqCard">
+              <div class="row-between">
+                <span class="eyebrow">소속 변경 요청</span>
+                <span class="caption">요청 10/13</span>
+              </div>
+              <p class="text-sm mt-8" id="orgReqText">주식회사 브릿지랩 → <strong>브릿지랩 디자인</strong></p>
+              <p class="caption mt-4" id="orgReqReason">사유: 계열사 이동</p>
+              <div class="row mt-12" id="orgReqActions">
+                <button class="btn btn-primary btn-sm" id="approveOrgBtn">승인</button>
+                <button class="btn btn-outline btn-sm" id="rejectOrgBtn">반려</button>
+              </div>
+            </div>
+
+            <!-- 이용 제한 카드 (F29/F33) -->
+            <div class="card" id="limitCard">
+              <div class="limit-row">
+                <span class="icon-tile"><i data-lucide="shield-check" id="limitIcon"></i></span>
+                <div class="grow">
+                  <div class="fw-600 text-sm" id="limitTitle">제한 없음</div>
+                  <div class="caption mt-4" id="limitDesc">최근 6개월 누적 1회 · 3회 시 7일 자동 제한</div>
+                  <div class="mt-12 hidden" id="limitActionWrap">
+                    <button class="btn btn-outline btn-sm" id="releaseLimitBtn">해제</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ── 우: 통계 + 예약 내역 ── -->
+          <div class="stack stack-lg">
+
+            <!-- 월별 이용 통계 (F34) -->
+            <div class="card card-lg">
+              <div class="card-head">
+                <div>
+                  <h3 class="card-title">월별 이용 통계</h3>
+                  <p class="card-desc">최근 6개월 · 성수 지점 회의실·자율좌석 합산 이용 시간</p>
+                </div>
+                <span class="badge badge-neutral">누적 128.5h</span>
+              </div>
+              <div class="bars-wrap">
+                <div class="bars">
+                  <div class="bar-col">
+                    <div class="bar-stack" title="5월 · 14.0h"><div class="bar bar-seat" style="height:63.6%"></div></div>
+                    <span class="bar-x">5월</span>
+                  </div>
+                  <div class="bar-col">
+                    <div class="bar-stack" title="6월 · 18.5h"><div class="bar bar-seat" style="height:84.1%"></div></div>
+                    <span class="bar-x">6월</span>
+                  </div>
+                  <div class="bar-col">
+                    <div class="bar-stack" title="7월 · 22.0h"><div class="bar bar-seat" style="height:100%"></div></div>
+                    <span class="bar-x">7월</span>
+                  </div>
+                  <div class="bar-col">
+                    <div class="bar-stack" title="8월 · 18.5h"><div class="bar bar-seat" style="height:84.1%"></div></div>
+                    <span class="bar-x">8월</span>
+                  </div>
+                  <div class="bar-col">
+                    <div class="bar-stack" title="9월 · 21.5h"><div class="bar bar-seat" style="height:97.7%"></div></div>
+                    <span class="bar-x">9월</span>
+                  </div>
+                  <div class="bar-col today">
+                    <div class="bar-stack" title="10월 · 17.5h (진행 중)"><div class="bar bar-room" style="height:79.5%"></div></div>
+                    <span class="bar-x">10월</span>
+                  </div>
+                </div>
+              </div>
+              <p class="caption mt-12">매월 1일 전월 데이터 집계 · 10월은 진행 중이라 실시간 합산 값이에요</p>
+
+              <div class="stat-grid">
+                <div>
+                  <div class="caption">이번 달 이용 시간</div>
+                  <div class="stat-val">17.5<small>h</small></div>
+                </div>
+                <div>
+                  <div class="caption">이번 달 예약</div>
+                  <div class="stat-val">8<small>건</small></div>
+                </div>
+                <div>
+                  <div class="caption">이번 달 노쇼</div>
+                  <div class="stat-val">0<small>회</small></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 예약 내역 (F31 결과 노출) -->
+            <div class="table-wrap">
+              <div class="table-toolbar">
+                <div>
+                  <h3 class="card-title">예약 내역</h3>
+                  <p class="card-desc">최근 예약순 · 행을 클릭하면 예약 관리에서 상세를 확인할 수 있어요</p>
+                </div>
+                <div class="tabs" id="resTabs">
+                  <button class="tab active" data-filter="all">전체 <span class="tabular">47</span></button>
+                  <button class="tab" data-filter="upcoming">예정 <span class="tabular">4</span></button>
+                  <button class="tab" data-filter="noshow">노쇼 <span class="tabular">1</span></button>
+                </div>
+              </div>
+              <div class="table-scroll">
+                <table class="table" id="resTable">
+                  <thead>
+                    <tr>
+                      <th>예약 번호</th>
+                      <th>공간</th>
+                      <th>일시</th>
+                      <th>상태</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="row-link" data-status="live" data-id="R-261014-0033">
+                      <td class="mono">R-261014-0033</td>
+                      <td class="cell-strong">자율좌석 B-17</td>
+                      <td class="mono">10/14(수) 09:12 – 22:00</td>
+                      <td><span class="badge badge-live">진행</span></td>
+                    </tr>
+                    <tr class="row-link" data-status="upcoming" data-id="R-261014-0031">
+                      <td class="mono">R-261014-0031</td>
+                      <td class="cell-strong">성수 A 회의실(4인)</td>
+                      <td class="mono">10/14(수) 14:00 – 15:00</td>
+                      <td><span class="badge badge-upcoming">예정</span></td>
+                    </tr>
+                    <tr class="row-link" data-status="upcoming" data-id="R-261016-0022">
+                      <td class="mono">R-261016-0022</td>
+                      <td class="cell-strong">성수 세미나룸(12인)</td>
+                      <td class="mono">10/16(금) 10:00 – 12:00</td>
+                      <td><span class="badge badge-upcoming">예정</span></td>
+                    </tr>
+                    <tr class="row-link" data-status="upcoming" data-id="R-261021-0009">
+                      <td class="mono">R-261021-0009</td>
+                      <td class="cell-strong">성수 B 회의실(8인)</td>
+                      <td class="mono">10/21(수) 15:00 – 16:30</td>
+                      <td><span class="badge badge-upcoming">예정</span></td>
+                    </tr>
+                    <tr class="row-link" data-status="done" data-id="R-261013-0018">
+                      <td class="mono">R-261013-0018</td>
+                      <td class="cell-strong">성수 A 회의실(4인)</td>
+                      <td class="mono">10/13(화) 10:00 – 11:30</td>
+                      <td><span class="badge badge-done">완료</span></td>
+                    </tr>
+                    <tr class="row-link" data-status="done" data-id="R-261009-0027">
+                      <td class="mono">R-261009-0027</td>
+                      <td class="cell-strong">성수 세미나룸(12인)</td>
+                      <td class="mono">10/9(금) 13:00 – 17:00</td>
+                      <td><span class="badge badge-done">완료</span></td>
+                    </tr>
+                    <tr class="row-link" data-status="done" data-id="R-261007-0011">
+                      <td class="mono">R-261007-0011</td>
+                      <td class="cell-strong">성수 C 회의실(6인)</td>
+                      <td class="mono">10/7(수) 09:00 – 10:00</td>
+                      <td><span class="badge badge-done">완료</span></td>
+                    </tr>
+                    <tr class="row-link" data-status="done" data-id="R-261002-0014">
+                      <td class="mono">R-261002-0014</td>
+                      <td class="cell-strong">성수 B 회의실(8인)</td>
+                      <td class="mono">10/2(금) 14:00 – 17:00</td>
+                      <td><span class="badge badge-done">완료</span></td>
+                    </tr>
+                    <tr class="row-link" data-status="cancel" data-id="R-261006-0008">
+                      <td class="mono">R-261006-0008</td>
+                      <td class="cell-strong">홍대 A 회의실(4인)</td>
+                      <td class="mono">10/6(화) 11:00 – 12:00</td>
+                      <td><span class="badge badge-cancel">취소</span></td>
+                    </tr>
+                    <tr class="row-link" data-status="noshow" data-id="R-260929-0019">
+                      <td class="mono">R-260929-0019</td>
+                      <td class="cell-strong">성수 C 회의실(6인)</td>
+                      <td class="mono">9/29(화) 09:00 – 10:00</td>
+                      <td><span class="badge badge-noshow">노쇼</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="table-foot">
+                <span id="resTableFoot">최근 10건 표시 · 누적 47건 중</span>
+                <span>노쇼 1회 · 3회 누적 시 자동 제한</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 이용 제한 설정 모달 (F29) -->
+  <div class="modal-backdrop" id="limitModalBackdrop">
+    <div class="modal">
+      <h3>이용 제한 설정</h3>
+      <div class="field">
+        <label>제한 기간</label>
+        <div class="segment block" id="limitPeriodSeg">
+          <button type="button" data-days="3">3일</button>
+          <button type="button" class="active" data-days="7">7일</button>
+          <button type="button" data-days="30">30일</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>사유</label>
+        <textarea class="textarea" id="limitReasonInput" placeholder="제한 사유를 입력하세요 (예: 반복 노쇼, 이용 규칙 위반 등)"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="cancelLimitBtn">취소</button>
+        <button class="btn btn-primary" id="applyLimitBtn">제한 적용</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast fixed" id="toast"></div>
+
+  <script>
+    lucide.createIcons();
+
+    const $ = (id) => document.getElementById(id);
+    const toastEl = $('toast');
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    /* ── 소속 변경 요청 승인·반려 (F27) ── */
+    function resolveOrgRequest(approved) {
+      const actions = $('orgReqActions');
+      actions.innerHTML = approved
+        ? '<span class="badge badge-live">승인됨</span><span class="caption">10/14 처리 · 프로필 소속이 갱신됐어요</span>'
+        : '<span class="badge badge-cancel">반려됨</span><span class="caption">10/14 처리 · 사유가 이용자에게 전달돼요</span>';
+      actions.style.gap = '8px';
+      if (approved) {
+        $('orgVal').textContent = '브릿지랩 디자인';
+        $('headerSub').textContent = 'seoyeon.park@bridgelab.co.kr · 브릿지랩 디자인';
+      }
+      toast('이용자에게 알림이 발송됐어요');
+    }
+    $('approveOrgBtn').addEventListener('click', () => resolveOrgRequest(true));
+    $('rejectOrgBtn').addEventListener('click', () => resolveOrgRequest(false));
+
+    /* ── 이용 제한 설정 모달 (F29) ── */
+    const limitBackdrop = $('limitModalBackdrop');
+    function openLimitModal() { limitBackdrop.classList.add('open'); }
+    function closeLimitModal() { limitBackdrop.classList.remove('open'); }
+    $('openLimitModalBtn').addEventListener('click', openLimitModal);
+    $('cancelLimitBtn').addEventListener('click', closeLimitModal);
+    limitBackdrop.addEventListener('click', (e) => { if (e.target === limitBackdrop) closeLimitModal(); });
+
+    document.querySelectorAll('#limitPeriodSeg button').forEach((b) => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('#limitPeriodSeg button').forEach((x) => x.classList.remove('active'));
+        b.classList.add('active');
+      });
+    });
+
+    function fmtEndDate(days) {
+      const base = new Date(2026, 9, 14); // 2026-10-14
+      base.setDate(base.getDate() + days);
+      return `${base.getMonth() + 1}/${base.getDate()}`;
+    }
+
+    $('applyLimitBtn').addEventListener('click', () => {
+      const days = Number(document.querySelector('#limitPeriodSeg button.active').dataset.days);
+      const reason = $('limitReasonInput').value.trim();
+      const end = fmtEndDate(days);
+      $('statusBadge').textContent = '제한 중';
+      $('statusBadge').className = 'badge badge-ink';
+      $('limitCard').querySelector('.limit-row').classList.add('warn');
+      $('limitIcon').setAttribute('data-lucide', 'shield-off');
+      $('limitTitle').textContent = '이용 제한 중';
+      $('limitDesc').textContent = `~${end} · 수동${reason ? ' · ' + reason : ''}`;
+      $('limitActionWrap').classList.remove('hidden');
+      lucide.createIcons();
+      closeLimitModal();
+      toast('이용 제한을 적용하고 이용자에게 알림을 보냈어요');
+    });
+
+    $('releaseLimitBtn').addEventListener('click', () => {
+      $('statusBadge').textContent = '정상';
+      $('statusBadge').className = 'badge badge-primary';
+      $('limitCard').querySelector('.limit-row').classList.remove('warn');
+      $('limitIcon').setAttribute('data-lucide', 'shield-check');
+      $('limitTitle').textContent = '제한 없음';
+      $('limitDesc').textContent = '최근 6개월 누적 1회 · 3회 시 7일 자동 제한';
+      $('limitActionWrap').classList.add('hidden');
+      lucide.createIcons();
+      toast('이용 제한을 해제하고 이용자에게 알림을 보냈어요');
+    });
+
+    /* ── 메모 (헤더 유틸리티 액션) ── */
+    $('memoBtn').addEventListener('click', () => toast('메모를 저장했습니다'));
+
+    /* ── 예약 내역 탭 필터 ── */
+    document.querySelectorAll('#resTabs .tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#resTabs .tab').forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+        const filter = tab.dataset.filter;
+        document.querySelectorAll('#resTable tbody tr').forEach((tr) => {
+          const status = tr.dataset.status;
+          const show = filter === 'all'
+            || (filter === 'upcoming' && (status === 'upcoming' || status === 'live'))
+            || (filter === 'noshow' && status === 'noshow');
+          tr.classList.toggle('hidden', !show);
+        });
+      });
+    });
+
+    /* ── 행 클릭 → 예약 관리(P16) 상세로 이동 ── */
+    document.querySelectorAll('#resTable tbody tr.row-link').forEach((tr) => {
+      tr.addEventListener('click', () => { location.href = `reservations.html?id=${tr.dataset.id}`; });
+    });
+  </script>
+</body>
+</html>

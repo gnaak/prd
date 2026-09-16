@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P8 예약 확정 — 모두라운지 예약</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 예약 확정 고유 스타일 (프레임·헤더는 common.css 클래스만 사용) ── */
+    .confirm-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
+    .confirm-head h1 { font-size: 20px; }
+
+    /* QR 플레이스홀더 격자 (이미지 대신 CSS 그리드로 표현) */
+    .qr-grid {
+      display: grid;
+      grid-template-columns: repeat(11, 1fr);
+      grid-template-rows: repeat(11, 1fr);
+      gap: 2px;
+      width: 120px; height: 120px;
+    }
+    .qr-grid .cell { background: var(--fill-soft); border-radius: 1px; }
+    .qr-grid .cell.on { background: var(--ink); }
+    .qr-num {
+      margin-top: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 15px; font-weight: 600; letter-spacing: 0.5px; color: var(--ink);
+    }
+
+    .info-row { display: flex; align-items: flex-start; gap: 8px; }
+    .info-row .lucide { width: 14px; height: 14px; margin-top: 2px; color: var(--ink-muted); flex: none; }
+  </style>
+</head>
+<body>
+  <div class="mobile-stage">
+    <div class="mobile-frame">
+      <div class="m-screen">
+
+        <!-- 상태바 -->
+        <div class="m-status">
+          <span>9:41</span>
+          <span class="m-status-icons">
+            <i data-lucide="signal"></i>
+            <i data-lucide="wifi"></i>
+            <i data-lucide="battery-full"></i>
+          </span>
+        </div>
+
+        <!-- 헤더: 중앙 타이틀 / 우측 닫기 -->
+        <header class="m-header">
+          <span class="m-header-spacer"></span>
+          <div class="m-title center" id="pageTitle">예약 완료</div>
+          <div class="m-header-actions">
+            <button class="icon-btn" onclick="location.href='home.html'" aria-label="닫기">
+              <i data-lucide="x"></i>
+            </button>
+          </div>
+        </header>
+
+        <!-- 본문 -->
+        <div class="m-content canvas">
+
+          <!-- 완료 표시 (회의실) -->
+          <div class="confirm-head mb-24 mode-room">
+            <i data-lucide="circle-check" style="width:40px;height:40px;color:var(--ink);stroke-width:1.5;"></i>
+            <h1>예약이 확정됐어요</h1>
+            <p class="caption">시작 10분 전에 알려드릴게요</p>
+          </div>
+
+          <!-- 완료 표시 (자율좌석) -->
+          <div class="confirm-head mb-24 mode-seat hidden">
+            <i data-lucide="circle-check" style="width:40px;height:40px;color:var(--ink);stroke-width:1.5;"></i>
+            <h1>좌석이 배정됐어요</h1>
+            <p class="caption">오늘 22:00까지 이용할 수 있어요</p>
+          </div>
+
+          <!-- QR 카드 (공통 — 구역 입구 스캔용, 하단 식별자만 모드에 따라 교체) -->
+          <div class="card mb-16" style="display:flex; flex-direction:column; align-items:center;">
+            <div class="qr-box">
+              <div class="qr-grid" id="qrGrid"></div>
+            </div>
+            <div class="qr-num" id="reservationNo">R-261014-0031</div>
+          </div>
+
+          <!-- 예약 정보 (회의실) -->
+          <div class="card mb-16 mode-room">
+            <dl class="kv">
+              <dt>공간</dt><dd>성수 A 회의실(4인) · 3층 A구역</dd>
+              <dt>일시</dt><dd>2026-10-14(수) 14:00–15:00</dd>
+              <dt>목적</dt><dd>주간 회의 · 3명</dd>
+              <dt>참석자</dt><dd>김민지, 이준호</dd>
+              <dt>크레딧</dt><dd>20 <span class="caption">(표시 전용)</span></dd>
+            </dl>
+          </div>
+
+          <!-- 좌석 정보 (자율좌석) -->
+          <div class="card mb-16 mode-seat hidden">
+            <dl class="kv">
+              <dt>구역</dt><dd>성수 2층 B구역</dd>
+              <dt>좌석</dt><dd>B-17</dd>
+              <dt>배정 시각</dt><dd>09:12</dd>
+              <dt>이용 종료</dt><dd>22:00 (자동 반납)</dd>
+              <dt>크레딧</dt><dd>무료(멤버십 포함)</dd>
+            </dl>
+          </div>
+
+          <!-- 안내 (회의실) -->
+          <div class="card card-soft mb-16 mode-room">
+            <div class="stack-sm">
+              <div class="info-row">
+                <i data-lucide="clock"></i>
+                <span class="text-sm secondary">13:50부터 체크인할 수 있어요</span>
+              </div>
+              <div class="info-row">
+                <i data-lucide="pencil"></i>
+                <span class="text-sm secondary">13:00까지 변경·취소할 수 있어요</span>
+              </div>
+              <div class="info-row">
+                <i data-lucide="alert-triangle"></i>
+                <span class="text-sm secondary">체크인 없이 15분이 지나면 노쇼로 처리돼요</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 안내 (자율좌석) -->
+          <div class="card card-soft mb-16 mode-seat hidden">
+            <div class="stack-sm">
+              <div class="info-row">
+                <i data-lucide="info"></i>
+                <span class="text-sm secondary">자율좌석은 배정 즉시 이용이 시작돼요</span>
+              </div>
+              <div class="info-row">
+                <i data-lucide="log-out"></i>
+                <span class="text-sm secondary">자리를 비울 땐 반납해 주세요</span>
+              </div>
+              <div class="info-row">
+                <i data-lucide="clock"></i>
+                <span class="text-sm secondary">22:00에 자동 반납됩니다</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 캘린더 추가 (회의실 전용 — 자율좌석은 시간 개념이 없어 숨김) -->
+          <button class="btn btn-outline btn-block mb-16 mode-room" id="addCalBtn">
+            <i data-lucide="calendar-plus"></i>캘린더에 추가
+          </button>
+
+        </div>
+
+        <!-- 하단 고정 액션 (완료 화면 — 탭바 대신) -->
+        <div class="m-footer">
+          <div class="stack-sm">
+            <button class="btn btn-primary btn-block mode-room" onclick="location.href='my-reservations.html'">내 예약 보기</button>
+            <button class="btn btn-primary btn-block mode-seat hidden" onclick="location.href='reservation-detail.html?type=seat'">내 좌석 보기</button>
+            <button class="btn btn-ghost btn-block" onclick="location.href='home.html'">홈으로</button>
+          </div>
+        </div>
+
+        <!-- 홈 인디케이터 -->
+        <div class="m-home"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* QR 플레이스홀더: 11x11 격자, 모서리 3곳은 finder 패턴처럼 채우고 나머지는 결정론적 패턴으로 채움 */
+    (function renderQr() {
+      const SIZE = 11;
+      const finders = [[0, 0], [0, 8], [8, 0]];
+      function isFinder(r, c) {
+        return finders.some(([fr, fc]) => r >= fr && r < fr + 3 && c >= fc && c < fc + 3);
+      }
+      function isOn(r, c) {
+        if (isFinder(r, c)) return true;
+        return ((r * 13 + c * 7 + r * c) % 5) < 2;
+      }
+      const grid = document.getElementById('qrGrid');
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell' + (isOn(r, c) ? ' on' : '');
+          grid.appendChild(cell);
+        }
+      }
+    })();
+
+    lucide.createIcons();
+
+    /* 모드 분기: 회의실(기본) / 자율좌석(?type=seat) — reservation-detail.html과 동일 패턴 */
+    const isSeatMode = new URLSearchParams(location.search).get('type') === 'seat';
+    if (isSeatMode) {
+      document.querySelectorAll('.mode-room').forEach((el) => el.classList.add('hidden'));
+      document.querySelectorAll('.mode-seat').forEach((el) => el.classList.remove('hidden'));
+      document.getElementById('pageTitle').textContent = '좌석 배정 완료';
+      document.getElementById('reservationNo').textContent = 'C-08';
+    }
+
+    /* 캘린더 추가: 텍스트 변경 + disabled (회의실 모드에서만 노출) */
+    document.getElementById('addCalBtn').addEventListener('click', function () {
+      this.innerHTML = '<i data-lucide="check"></i>추가됨';
+      this.disabled = true;
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

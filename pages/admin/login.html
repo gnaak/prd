@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P13 관리자 로그인 — 모두라운지 관리자</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 관리자 로그인 고유 스타일 (사이드바 없는 단독 레이아웃) ── */
+    body { min-height: 100vh; }
+    .admin-login-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .admin-login-card { width: 100%; max-width: 400px; }
+    .admin-login-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .admin-login-brand .brand-mark { width: 40px; height: 40px; border-radius: var(--r-lg); }
+    .admin-login-brand .brand-mark .lucide { width: 20px; height: 20px; }
+    .admin-login-brand h1 { text-align: center; }
+
+    .pw-wrap { position: relative; }
+    .pw-wrap .input { padding-right: 40px; }
+    .pw-wrap .icon-btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); }
+
+    .admin-login-foot {
+      position: fixed;
+      left: 20px;
+      bottom: 16px;
+      font-size: 12px;
+      color: var(--ink-faint);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="admin-login-wrap">
+    <div class="card card-lg card-elevated admin-login-card">
+
+      <div class="admin-login-brand">
+        <span class="brand-mark"><i data-lucide="building-2"></i></span>
+        <h1>모두라운지 운영자 콘솔</h1>
+        <p class="caption center">관리자 계정으로 로그인하세요</p>
+      </div>
+
+      <div class="stack">
+        <div class="field">
+          <label>이메일</label>
+          <input class="input" type="email" id="adminEmail" placeholder="haneul.kim@modulounge.kr">
+        </div>
+        <div class="field">
+          <label>비밀번호</label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="adminPw" placeholder="비밀번호 입력">
+            <button class="icon-btn sm" id="pwToggle" type="button" title="비밀번호 표시" aria-label="비밀번호 표시"><i data-lucide="eye"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <label class="check mt-16 mb-20">
+        <input type="checkbox" id="keepLogin">
+        <span>로그인 상태 유지</span>
+      </label>
+
+      <button class="btn btn-primary btn-block btn-lg" id="loginBtn">로그인</button>
+
+      <p class="caption center mt-24" style="line-height:1.6;">
+        권한: 전체 관리자(모든 지점) / 지점 관리자(소속 지점만)<br>
+        계정 문의는 시스템 담당자에게
+      </p>
+      <p class="center mt-12">
+        <button class="link text-sm" id="resetBtn">비밀번호 재설정</button>
+      </p>
+
+    </div>
+  </div>
+
+  <div class="admin-login-foot">© 모두라운지 · v1.0.0</div>
+
+  <div class="toast fixed" id="toast"></div>
+
+  <script>
+    lucide.createIcons();
+
+    const $ = (id) => document.getElementById(id);
+    const toastEl = $('toast');
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    /* 비밀번호 표시/숨김 토글 */
+    const pwInput = $('adminPw');
+    const pwToggle = $('pwToggle');
+    pwToggle.addEventListener('click', () => {
+      const show = pwInput.type === 'password';
+      pwInput.type = show ? 'text' : 'password';
+      pwToggle.innerHTML = show ? '<i data-lucide="eye-off"></i>' : '<i data-lucide="eye"></i>';
+      lucide.createIcons();
+    });
+
+    /* 관리자 로그인 (F21) → 대시보드로 이동 */
+    $('loginBtn').addEventListener('click', () => { location.href = 'dashboard.html'; });
+
+    /* 비밀번호 재설정 (F21 — 전제 기능) */
+    $('resetBtn').addEventListener('click', () => toast('재설정 메일을 보냈어요'));
+  </script>
+</body>
+</html>

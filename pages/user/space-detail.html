@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P6 공간 상세 — 모두라운지 예약</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 공간 상세 고유 스타일 (프레임·헤더는 common.css 클래스만 사용) ── */
+    .photo-box {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--fill-soft);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+    }
+    .photo-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,.92);
+    }
+    .photo-nav:hover { background: var(--surface); }
+    .photo-nav.prev { left: 8px; }
+    .photo-nav.next { right: 8px; }
+    .photo-counter {
+      position: absolute; right: 8px; bottom: 8px;
+      padding: 2px 8px; font-size: 11px; font-weight: 600;
+      color: var(--on-primary); background: rgba(0,0,0,.55);
+      border-radius: var(--r-full); font-variant-numeric: tabular-nums;
+    }
+
+    .rule-row { display: flex; align-items: flex-start; gap: 8px; }
+    .rule-row .lucide { width: 14px; height: 14px; margin-top: 2px; color: var(--ink-muted); }
+
+    /* 오늘 예약 현황: 조회 전용 — 탭 불가 */
+    .slots-static .slot { cursor: default; }
+    .slots-static .slot:not(.booked):not(.past):hover { background: var(--surface); }
+    .legend i { background: var(--fill-soft); }
+    .legend .lg-past i { background: var(--canvas); }
+  </style>
+</head>
+<body>
+  <div class="mobile-stage">
+    <div class="mobile-frame">
+      <div class="m-screen">
+
+        <!-- 상태바 -->
+        <div class="m-status">
+          <span>9:41</span>
+          <span class="m-status-icons">
+            <i data-lucide="signal"></i>
+            <i data-lucide="wifi"></i>
+            <i data-lucide="battery-full"></i>
+          </span>
+        </div>
+
+        <!-- 헤더: 좌 뒤로 / 제목 / 우 공유 -->
+        <header class="m-header">
+          <button class="icon-btn" onclick="location.href='spaces.html'" aria-label="뒤로">
+            <i data-lucide="arrow-left"></i>
+          </button>
+          <span class="m-title">성수 A 회의실</span>
+          <div class="m-header-actions">
+            <button class="icon-btn" id="shareBtn" aria-label="공유">
+              <i data-lucide="share-2"></i>
+            </button>
+          </div>
+        </header>
+
+        <!-- 본문 -->
+        <div class="m-content canvas">
+
+          <!-- 사진 (플레이스홀더) -->
+          <div class="photo-box mb-16">
+            <i data-lucide="image" style="width:40px;height:40px;color:var(--ink-faint);"></i>
+            <button class="icon-btn sm photo-nav prev" id="photoPrev" aria-label="이전 사진"><i data-lucide="chevron-left"></i></button>
+            <button class="icon-btn sm photo-nav next" id="photoNext" aria-label="다음 사진"><i data-lucide="chevron-right"></i></button>
+            <span class="photo-counter" id="photoCounter">1 / 4</span>
+          </div>
+
+          <!-- 제목 블록 -->
+          <div class="row-between mb-4">
+            <h1 style="font-size:20px;">성수 A 회의실(4인)</h1>
+            <span class="badge badge-upcoming">지금 이용 가능</span>
+          </div>
+          <p class="text-sm muted mb-4">3층 A구역 · 20 크레딧/시간</p>
+          <p class="caption mb-16"><i data-lucide="clock" style="width:12px;height:12px;vertical-align:-2px;margin-right:4px;"></i>평일 08:00–22:00 · 주말 10:00–18:00</p>
+
+          <!-- 설명 -->
+          <p class="text-sm secondary mb-16" style="line-height:1.6;">
+            창가 자리라 자연광이 잘 들고 소음이 적어 집중이 필요한 회의나 면접에 적합합니다.
+            4인용 원형 테이블과 화이트보드를 갖추고 있어 소규모 팀 미팅에도 무리 없이 사용할 수 있습니다.
+          </p>
+
+          <!-- 보유 장비 -->
+          <h2 class="section-title mb-8">보유 장비</h2>
+          <div class="card card-flush list mb-16">
+            <div class="list-item">
+              <i data-lucide="monitor" style="color:var(--ink-muted);"></i>
+              <span>55인치 모니터</span>
+            </div>
+            <div class="list-item">
+              <i data-lucide="presentation" style="color:var(--ink-muted);"></i>
+              <span>화이트보드</span>
+            </div>
+            <div class="list-item">
+              <i data-lucide="video" style="color:var(--ink-muted);"></i>
+              <span>화상회의 카메라 · 스피커</span>
+            </div>
+            <div class="list-item">
+              <i data-lucide="plug" style="color:var(--ink-muted);"></i>
+              <span>콘센트 6구</span>
+            </div>
+          </div>
+
+          <!-- 위치 -->
+          <h2 class="section-title mb-8">위치</h2>
+          <div class="card mb-16">
+            <div class="row" style="align-items:flex-start;">
+              <i data-lucide="map-pin" style="color:var(--ink-muted);"></i>
+              <div>
+                <div class="text-sm secondary fw-600">3층 A구역</div>
+                <p class="caption mt-4">엘리베이터에서 내려 좌측으로 도보 30초 · 계단 이용 시 3층으로 바로 연결됩니다.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 이용 규칙 -->
+          <h2 class="section-title mb-8">이용 규칙</h2>
+          <div class="card card-soft mb-16">
+            <div class="stack-sm">
+              <div class="rule-row">
+                <i data-lucide="check"></i>
+                <span class="text-sm secondary">최소 30분, 최대 4시간까지 이용할 수 있어요</span>
+              </div>
+              <div class="rule-row">
+                <i data-lucide="check"></i>
+                <span class="text-sm secondary">시작 1시간 전까지 시간·정보 변경 및 취소가 가능해요</span>
+              </div>
+              <div class="rule-row">
+                <i data-lucide="check"></i>
+                <span class="text-sm secondary">체크인 없이 15분이 지나면 노쇼로 처리돼요</span>
+              </div>
+              <div class="rule-row">
+                <i data-lucide="check"></i>
+                <span class="text-sm secondary">음식물 반입은 금지돼요</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 오늘 예약 현황 -->
+          <div class="section-head">
+            <h2 class="section-title">오늘 예약 현황</h2>
+            <span class="caption">10월 14일 (수) 기준</span>
+          </div>
+          <div class="legend mb-8">
+            <span><i></i>예약됨</span>
+            <span class="lg-past"><i></i>지난 시간</span>
+          </div>
+          <div class="slots slots-static mb-8">
+            <div class="slot past">09:00</div>
+            <div class="slot">09:30</div>
+            <div class="slot booked">10:00</div>
+            <div class="slot booked">10:30</div>
+            <div class="slot">11:00</div>
+            <div class="slot">11:30</div>
+            <div class="slot">12:00</div>
+            <div class="slot">12:30</div>
+            <div class="slot">13:00</div>
+            <div class="slot">13:30</div>
+            <div class="slot booked">14:00</div>
+            <div class="slot booked">14:30</div>
+            <div class="slot">15:00</div>
+            <div class="slot">15:30</div>
+            <div class="slot">16:00</div>
+            <div class="slot booked">16:30</div>
+            <div class="slot">17:00</div>
+            <div class="slot">17:30</div>
+            <div class="slot">18:00</div>
+            <div class="slot">18:30</div>
+            <div class="slot booked">19:00</div>
+            <div class="slot booked">19:30</div>
+            <div class="slot">20:00</div>
+            <div class="slot">20:30</div>
+            <div class="slot">21:00</div>
+            <div class="slot">21:30</div>
+          </div>
+          <p class="caption mb-16">시간 선택은 예약하기에서 할 수 있어요.</p>
+
+        </div>
+
+        <!-- 하단 고정 CTA (탭바 없는 상세 페이지) -->
+        <div class="m-footer">
+          <button class="btn btn-primary btn-block btn-lg" onclick="location.href='reserve.html'">예약하기</button>
+        </div>
+
+        <!-- 홈 인디케이터 -->
+        <div class="m-home"></div>
+
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    /* 사진 카운터 토글 (플레이스홀더 순환) */
+    const TOTAL_PHOTOS = 4;
+    let photoIdx = 0;
+    const photoCounter = document.getElementById('photoCounter');
+    function renderPhoto() { photoCounter.textContent = `${photoIdx + 1} / ${TOTAL_PHOTOS}`; }
+    document.getElementById('photoPrev').addEventListener('click', () => {
+      photoIdx = (photoIdx - 1 + TOTAL_PHOTOS) % TOTAL_PHOTOS;
+      renderPhoto();
+    });
+    document.getElementById('photoNext').addEventListener('click', () => {
+      photoIdx = (photoIdx + 1) % TOTAL_PHOTOS;
+      renderPhoto();
+    });
+
+    /* 공유 → 링크 복사 토스트 */
+    const toastEl = document.getElementById('toast');
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+    document.getElementById('shareBtn').addEventListener('click', () => toast('링크를 복사했어요'));
+  </script>
+</body>
+</html>

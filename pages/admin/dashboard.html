@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P14 대시보드 — 모두라운지 관리자</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 대시보드 고유 스타일 (사이드바·헤더는 common.css 클래스만 사용) ── */
+    .dash-row { display: grid; grid-template-columns: 5fr 7fr; gap: 16px; }
+    .meter-row.dim { opacity: .35; }
+    .bar-stack[title] { cursor: default; }
+    .bars-wrap { padding-top: 8px; }
+    .wait-cell { color: var(--ink-faint); }
+    .table td.mono { font-variant-numeric: tabular-nums; color: var(--ink-secondary); }
+    .refresh-spin .lucide { animation: spin .6s linear; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 1240px) {
+      .cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .dash-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin">
+
+    <!-- 좌측 GNB (전 관리자 페이지 공통) -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-mark"><i data-lucide="building-2"></i></span>
+        <div>모두라운지<small>운영자 콘솔</small></div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item active" href="dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+        <a class="nav-item" href="spaces.html"><i data-lucide="door-open"></i>공간 관리</a>
+        <a class="nav-item" href="reservations.html"><i data-lucide="calendar-check"></i>예약 관리</a>
+        <a class="nav-item" href="members.html"><i data-lucide="users"></i>회원 관리</a>
+        <a class="nav-item" href="notices.html"><i data-lucide="megaphone"></i>공지 관리</a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="sidebar-user">
+          <span class="avatar">김</span>
+          <div class="who">
+            <div class="name">김하늘</div>
+            <div class="role">전체 관리자 · 3개 지점</div>
+          </div>
+          <button class="icon-btn sm" onclick="location.href='login.html'" title="로그아웃" aria-label="로그아웃"><i data-lucide="log-out"></i></button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+
+      <!-- 페이지 헤더: 제목 + 지점 필터 세그먼트 + 새로고침 -->
+      <header class="admin-header">
+        <h1>대시보드</h1>
+        <span class="sub" id="updatedAt">2026-10-14 (수) · 14:12 갱신</span>
+        <div class="admin-header-actions">
+          <div class="segment" id="branchSeg">
+            <button class="active" data-branch="all">전체</button>
+            <button data-branch="seongsu">성수</button>
+            <button data-branch="hongdae">홍대</button>
+            <button data-branch="pangyo">판교</button>
+          </div>
+          <button class="btn btn-utility" id="refreshBtn"><i data-lucide="refresh-cw"></i>새로고침</button>
+        </div>
+      </header>
+
+      <div class="admin-body">
+
+        <!-- (a) 오늘 KPI 4장 -->
+        <div class="grid cols-4">
+          <div class="card kpi">
+            <div class="kpi-label"><i data-lucide="calendar"></i>오늘 예약</div>
+            <div class="kpi-value"><span id="kpiRes">47</span><small>건</small></div>
+            <div class="kpi-delta" id="kpiResSub">회의실 기준 · 자율좌석 배정 75건 별도 · 전일 대비 +5</div>
+          </div>
+          <div class="card kpi">
+            <div class="kpi-label"><i data-lucide="scan-line"></i>체크인 완료</div>
+            <div class="kpi-value"><span id="kpiCheck">31</span><small>건</small></div>
+            <div class="kpi-delta" id="kpiCheckSub">오늘 예약 대비 66% · 시작 전 대기 12건</div>
+          </div>
+          <div class="card kpi">
+            <div class="kpi-label"><i data-lucide="user-x"></i>노쇼</div>
+            <div class="kpi-value"><span id="kpiNoshow">3</span><small>건</small></div>
+            <div class="kpi-delta" id="kpiNoshowSub">자동 판정 2 · 수동 처리 1</div>
+          </div>
+          <div class="card kpi">
+            <div class="kpi-label"><i data-lucide="gauge"></i>회의실 가동률</div>
+            <div class="kpi-value"><span id="kpiUtil">62</span><small>%</small></div>
+            <div class="kpi-delta" id="kpiUtilSub">오늘 운영 시간 대비 예약 시간 · 회의실 14실</div>
+          </div>
+        </div>
+
+        <!-- (a') 좌석 점유율 + (b) 최근 7일 추이 -->
+        <div class="dash-row">
+          <div class="card card-lg">
+            <div class="card-head">
+              <div>
+                <h3 class="card-title">좌석 점유율</h3>
+                <p class="card-desc">현재 배정 좌석 / 전체 자율좌석</p>
+              </div>
+              <span class="badge badge-neutral" id="seatTotalBadge">75 / 120석 · 63%</span>
+            </div>
+            <div id="seatMeters">
+              <div class="meter-row" data-branch="seongsu">
+                <span class="meter-name">성수</span>
+                <div class="progress"><span style="width:71%"></span></div>
+                <span class="meter-value"><strong>34</strong> / 48 · 71%</span>
+              </div>
+              <div class="meter-row" data-branch="hongdae">
+                <span class="meter-name">홍대</span>
+                <div class="progress"><span style="width:55%"></span></div>
+                <span class="meter-value"><strong>22</strong> / 40 · 55%</span>
+              </div>
+              <div class="meter-row" data-branch="pangyo">
+                <span class="meter-name">판교</span>
+                <div class="progress"><span style="width:59%"></span></div>
+                <span class="meter-value"><strong>19</strong> / 32 · 59%</span>
+              </div>
+            </div>
+            <p class="caption mt-12">자율좌석은 당일 즉시 배정 · 반납 시 즉시 해제 · 1분마다 자동 갱신</p>
+          </div>
+
+          <div class="card card-lg">
+            <div class="card-head">
+              <div>
+                <h3 class="card-title">최근 7일 예약 추이</h3>
+                <p class="card-desc">일별 건수 · 회의실 예약과 자율좌석 배정 구분</p>
+              </div>
+              <div class="legend">
+                <span><i style="background:var(--primary)"></i>회의실</span>
+                <span><i style="background:var(--fill-muted)"></i>자율좌석</span>
+              </div>
+            </div>
+            <div class="bars-wrap">
+              <div class="bars" id="bars">
+                <div class="bar-col">
+                  <div class="bar-stack" title="10/08 · 회의실 38 · 좌석 71"><div class="bar bar-seat" style="height:54.6%"></div><div class="bar bar-room" style="height:29.2%"></div></div>
+                  <span class="bar-x">10/08 목</span>
+                </div>
+                <div class="bar-col">
+                  <div class="bar-stack" title="10/09 · 회의실 41 · 좌석 68"><div class="bar bar-seat" style="height:52.3%"></div><div class="bar bar-room" style="height:31.5%"></div></div>
+                  <span class="bar-x">10/09 금</span>
+                </div>
+                <div class="bar-col">
+                  <div class="bar-stack" title="10/10 · 회의실 12 · 좌석 24"><div class="bar bar-seat" style="height:18.5%"></div><div class="bar bar-room" style="height:9.2%"></div></div>
+                  <span class="bar-x">10/10 토</span>
+                </div>
+                <div class="bar-col">
+                  <div class="bar-stack" title="10/11 · 회의실 6 · 좌석 15"><div class="bar bar-seat" style="height:11.5%"></div><div class="bar bar-room" style="height:4.6%"></div></div>
+                  <span class="bar-x">10/11 일</span>
+                </div>
+                <div class="bar-col">
+                  <div class="bar-stack" title="10/12 · 회의실 44 · 좌석 82"><div class="bar bar-seat" style="height:63.1%"></div><div class="bar bar-room" style="height:33.8%"></div></div>
+                  <span class="bar-x">10/12 월</span>
+                </div>
+                <div class="bar-col">
+                  <div class="bar-stack" title="10/13 · 회의실 46 · 좌석 79"><div class="bar bar-seat" style="height:60.8%"></div><div class="bar bar-room" style="height:35.4%"></div></div>
+                  <span class="bar-x">10/13 화</span>
+                </div>
+                <div class="bar-col today">
+                  <div class="bar-stack" title="10/14 · 회의실 47 · 좌석 75 (진행 중)"><div class="bar bar-seat" style="height:57.7%"></div><div class="bar bar-room" style="height:36.2%"></div></div>
+                  <span class="bar-x">10/14 오늘</span>
+                </div>
+              </div>
+            </div>
+            <p class="caption mt-12" id="barsNote">7일 합계 · 회의실 234건 · 자율좌석 414건 · 주말(10/10–11)은 성수·홍대만 운영</p>
+          </div>
+        </div>
+
+        <!-- (c) 현재 진행 중 예약 -->
+        <div class="table-wrap">
+          <div class="table-toolbar">
+            <div>
+              <h3 class="card-title">현재 진행 중 예약 <span class="faint fw-500" id="liveCount">8</span></h3>
+              <p class="card-desc">14:12 기준 · 시작 시각이 지났거나 10분 이내인 회의실 예약 · 행을 클릭하면 예약 관리에서 상세 드로어가 열립니다</p>
+            </div>
+            <div class="row">
+              <span class="badge badge-live badge-dot">실시간</span>
+              <a class="btn btn-utility" href="reservations.html">전체 보기<i data-lucide="arrow-right"></i></a>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="table" id="liveTable">
+              <thead>
+                <tr>
+                  <th>예약 번호</th>
+                  <th>공간</th>
+                  <th>지점</th>
+                  <th>회원</th>
+                  <th>소속</th>
+                  <th>시간</th>
+                  <th>체크인</th>
+                  <th>상태</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-link" data-branch="seongsu" data-id="R-261014-0027">
+                  <td class="mono">R-261014-0027</td>
+                  <td class="cell-strong">성수 B 회의실(8인)</td>
+                  <td>성수</td>
+                  <td>이준호</td>
+                  <td>코넥트파트너스</td>
+                  <td class="mono">13:30 – 15:30</td>
+                  <td class="mono">13:27</td>
+                  <td><span class="badge badge-live">진행</span></td>
+                </tr>
+                <tr class="row-link" data-branch="pangyo" data-id="R-261014-0025">
+                  <td class="mono">R-261014-0025</td>
+                  <td class="cell-strong">판교 세미나룸(12인)</td>
+                  <td>판교</td>
+                  <td>정우진</td>
+                  <td>넥스트웨이브</td>
+                  <td class="mono">13:00 – 16:00</td>
+                  <td class="mono">12:58</td>
+                  <td><span class="badge badge-live">진행</span></td>
+                </tr>
+                <tr class="row-link" data-branch="hongdae" data-id="R-261014-0029">
+                  <td class="mono">R-261014-0029</td>
+                  <td class="cell-strong">홍대 C 회의실(6인)</td>
+                  <td>홍대</td>
+                  <td>최민아</td>
+                  <td>개인</td>
+                  <td class="mono">14:00 – 14:30</td>
+                  <td class="mono">13:56</td>
+                  <td><span class="badge badge-live">진행</span></td>
+                </tr>
+                <tr class="row-link" data-branch="seongsu" data-id="R-261014-0031">
+                  <td class="mono">R-261014-0031</td>
+                  <td class="cell-strong">성수 A 회의실(4인)</td>
+                  <td>성수</td>
+                  <td>박서연</td>
+                  <td>주식회사 브릿지랩</td>
+                  <td class="mono">14:00 – 15:00</td>
+                  <td class="wait-cell">대기<span class="cell-sub">14:15 노쇼 판정</span></td>
+                  <td><span class="badge badge-upcoming">예정</span></td>
+                </tr>
+                <tr class="row-link" data-branch="hongdae" data-id="R-261014-0030">
+                  <td class="mono">R-261014-0030</td>
+                  <td class="cell-strong">홍대 A 회의실(4인)</td>
+                  <td>홍대</td>
+                  <td>한지민</td>
+                  <td>스튜디오 온</td>
+                  <td class="mono">14:00 – 15:00</td>
+                  <td class="wait-cell">대기<span class="cell-sub">14:15 노쇼 판정</span></td>
+                  <td><span class="badge badge-upcoming">예정</span></td>
+                </tr>
+                <tr class="row-link" data-branch="pangyo" data-id="R-261014-0022">
+                  <td class="mono">R-261014-0022</td>
+                  <td class="cell-strong">판교 B 회의실(8인)</td>
+                  <td>판교</td>
+                  <td>오세훈</td>
+                  <td>개인</td>
+                  <td class="mono">12:30 – 14:30</td>
+                  <td class="mono">12:31</td>
+                  <td><span class="badge badge-live">진행</span></td>
+                </tr>
+                <tr class="row-link" data-branch="seongsu" data-id="R-261014-0028">
+                  <td class="mono">R-261014-0028</td>
+                  <td class="cell-strong">성수 D 회의실(2인)</td>
+                  <td>성수</td>
+                  <td>김도윤</td>
+                  <td>주식회사 브릿지랩</td>
+                  <td class="mono">13:30 – 14:30</td>
+                  <td class="mono">13:34</td>
+                  <td><span class="badge badge-live">진행</span></td>
+                </tr>
+                <tr class="row-link" data-branch="hongdae" data-id="R-261014-0026">
+                  <td class="mono">R-261014-0026</td>
+                  <td class="cell-strong">홍대 B 회의실(6인)</td>
+                  <td>홍대</td>
+                  <td>윤서아</td>
+                  <td>그로우랩</td>
+                  <td class="mono">13:00 – 15:00</td>
+                  <td class="mono">13:02</td>
+                  <td><span class="badge badge-live">진행</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-foot">
+            <span id="tableFootNote">진행 6 · 체크인 대기 2 · 노쇼 판정은 시작 후 15분에 자동 실행</span>
+            <span>자동 갱신 1분</span>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <div class="toast fixed" id="toast"></div>
+
+  <script>
+    lucide.createIcons();
+
+    /* ── 지점별 더미 데이터 (전체 = 지점 합) ── */
+    const KPI = {
+      all:     { res: 47, check: 31, noshow: 3, util: 62, resSub: '회의실 기준 · 자율좌석 배정 75건 별도 · 전일 대비 +5', checkSub: '오늘 예약 대비 66% · 시작 전 대기 12건', noshowSub: '자동 판정 2 · 수동 처리 1', utilSub: '오늘 운영 시간 대비 예약 시간 · 회의실 14실' },
+      seongsu: { res: 19, check: 13, noshow: 1, util: 68, resSub: '회의실 기준 · 자율좌석 배정 34건 별도 · 전일 대비 +2', checkSub: '오늘 예약 대비 68% · 시작 전 대기 5건',  noshowSub: '자동 판정 1 · 수동 처리 0', utilSub: '오늘 운영 시간 대비 예약 시간 · 회의실 6실' },
+      hongdae: { res: 15, check: 10, noshow: 2, util: 57, resSub: '회의실 기준 · 자율좌석 배정 22건 별도 · 전일 대비 +1', checkSub: '오늘 예약 대비 67% · 시작 전 대기 4건',  noshowSub: '자동 판정 1 · 수동 처리 1', utilSub: '오늘 운영 시간 대비 예약 시간 · 회의실 5실' },
+      pangyo:  { res: 13, check: 8,  noshow: 0, util: 59, resSub: '회의실 기준 · 자율좌석 배정 19건 별도 · 전일 대비 +2', checkSub: '오늘 예약 대비 62% · 시작 전 대기 3건',  noshowSub: '자동 판정 0 · 수동 처리 0', utilSub: '오늘 운영 시간 대비 예약 시간 · 회의실 3실' },
+    };
+    const SEAT = { all: [75, 120], seongsu: [34, 48], hongdae: [22, 40], pangyo: [19, 32] };
+    const DAYS = ['10/08', '10/09', '10/10', '10/11', '10/12', '10/13', '10/14'];
+    const TREND = { // [회의실, 자율좌석] × 7일
+      all:     [[38, 71], [41, 68], [12, 24], [6, 15], [44, 82], [46, 79], [47, 75]],
+      seongsu: [[15, 28], [17, 27], [5, 10],  [3, 6],  [18, 33], [19, 31], [19, 30]],
+      hongdae: [[13, 24], [14, 23], [4, 8],   [2, 5],  [15, 27], [15, 26], [15, 26]],
+      pangyo:  [[10, 19], [10, 18], [3, 6],   [1, 4],  [11, 22], [12, 22], [13, 19]],
+    };
+    const BRANCH_NAME = { all: '전체 지점', seongsu: '성수', hongdae: '홍대', pangyo: '판교' };
+
+    const $ = (id) => document.getElementById(id);
+    const toastEl = $('toast');
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
+    }
+
+    /* ── 지점 필터 적용 ── */
+    function applyBranch(key) {
+      // KPI
+      const k = KPI[key];
+      $('kpiRes').textContent = k.res;       $('kpiResSub').textContent = k.resSub;
+      $('kpiCheck').textContent = k.check;   $('kpiCheckSub').textContent = k.checkSub;
+      $('kpiNoshow').textContent = k.noshow; $('kpiNoshowSub').textContent = k.noshowSub;
+      $('kpiUtil').textContent = k.util;     $('kpiUtilSub').textContent = k.utilSub;
+
+      // 좌석 점유율: 선택 지점만 강조
+      const [used, total] = SEAT[key];
+      $('seatTotalBadge').textContent = `${used} / ${total}석 · ${Math.round(used / total * 100)}%`;
+      document.querySelectorAll('#seatMeters .meter-row').forEach(r => r.classList.toggle('dim', key !== 'all' && r.dataset.branch !== key));
+
+      // 7일 추이: 막대 높이 재계산 (가장 높은 날 = 100%)
+      const rows = TREND[key];
+      const max = Math.max(...rows.map(([r, s]) => r + s));
+      const cols = document.querySelectorAll('#bars .bar-col');
+      let sumR = 0, sumS = 0;
+      rows.forEach(([r, s], i) => {
+        sumR += r; sumS += s;
+        const stack = cols[i].querySelector('.bar-stack');
+        stack.querySelector('.bar-seat').style.height = (s / max * 100).toFixed(1) + '%';
+        stack.querySelector('.bar-room').style.height = (r / max * 100).toFixed(1) + '%';
+        stack.title = `${DAYS[i]} · 회의실 ${r} · 좌석 ${s}${i === 6 ? ' (진행 중)' : ''}`;
+      });
+      $('barsNote').textContent = `7일 합계 · 회의실 ${sumR}건 · 자율좌석 ${sumS}건 · ${key === 'pangyo' ? '판교는 주말 휴무' : '주말(10/10–11)은 성수·홍대만 운영'}`;
+
+      // 진행 중 예약 표 필터
+      let live = 0, wait = 0, shown = 0;
+      document.querySelectorAll('#liveTable tbody tr').forEach(tr => {
+        const show = key === 'all' || tr.dataset.branch === key;
+        tr.classList.toggle('hidden', !show);
+        if (show) {
+          shown++;
+          if (tr.querySelector('.badge-live')) live++; else wait++;
+        }
+      });
+      $('liveCount').textContent = shown;
+      $('tableFootNote').textContent = `진행 ${live} · 체크인 대기 ${wait} · 노쇼 판정은 시작 후 15분에 자동 실행`;
+    }
+
+    document.querySelectorAll('#branchSeg button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#branchSeg button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyBranch(btn.dataset.branch);
+        toast(`${BRANCH_NAME[btn.dataset.branch]} 기준으로 표시`);
+      });
+    });
+
+    /* ── 행 클릭 → 예약 관리(P16) 상세 드로어 열림 상태로 착지 ── */
+    document.querySelectorAll('#liveTable tbody tr.row-link').forEach(tr => {
+      tr.addEventListener('click', () => { location.href = `reservations.html?id=${tr.dataset.id}`; });
+    });
+
+    /* ── 새로고침: 갱신 시각 +1분, 아이콘 회전 ── */
+    let minute = 12;
+    $('refreshBtn').addEventListener('click', () => {
+      const btn = $('refreshBtn');
+      btn.classList.add('refresh-spin');
+      setTimeout(() => btn.classList.remove('refresh-spin'), 600);
+      minute += 1;
+      $('updatedAt').textContent = `2026-10-14 (수) · 14:${String(minute).padStart(2, '0')} 갱신`;
+      toast('대시보드를 갱신했습니다');
+    });
+
+    applyBranch('all');
+  </script>
+</body>
+</html>

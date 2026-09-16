@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P17 회원 관리 — 모두라운지 관리자</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 회원 관리 고유 스타일 (사이드바·헤더는 common.css 클래스만 사용) ── */
+    .toolbar-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .toolbar-row .input-icon { width: 260px; }
+    .toolbar-row .select { width: 132px; }
+    .table td.noshow-hi { font-weight: 700; color: var(--ink); }
+    .corp-note { margin-bottom: 4px; }
+    @media (max-width: 1240px) {
+      .grid.cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin">
+
+    <!-- 좌측 GNB (전 관리자 페이지 공통) -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-mark"><i data-lucide="building-2"></i></span>
+        <div>모두라운지<small>운영자 콘솔</small></div>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="dashboard.html"><i data-lucide="layout-dashboard"></i>대시보드</a>
+        <a class="nav-item" href="spaces.html"><i data-lucide="door-open"></i>공간 관리</a>
+        <a class="nav-item" href="reservations.html"><i data-lucide="calendar-check"></i>예약 관리</a>
+        <a class="nav-item active" href="members.html"><i data-lucide="users"></i>회원 관리</a>
+        <a class="nav-item" href="notices.html"><i data-lucide="megaphone"></i>공지 관리</a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="sidebar-user">
+          <span class="avatar">김</span>
+          <div class="who">
+            <div class="name">김하늘</div>
+            <div class="role">전체 관리자 · 3개 지점</div>
+          </div>
+          <button class="icon-btn sm" onclick="location.href='login.html'" title="로그아웃" aria-label="로그아웃"><i data-lucide="log-out"></i></button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+
+      <!-- 페이지 헤더 -->
+      <header class="admin-header">
+        <h1>회원 관리</h1>
+        <span class="sub">전체 회원 312명 · 법인 24개</span>
+        <div class="admin-header-actions">
+          <button class="btn btn-utility" id="exportBtn"><i data-lucide="download"></i>내보내기</button>
+        </div>
+      </header>
+
+      <div class="admin-body">
+
+        <!-- 탭: 회원 / 법인 그룹 -->
+        <div class="tabs" id="mainTabs">
+          <button class="tab active" data-tab="members">회원 <span class="tag">312</span></button>
+          <button class="tab" data-tab="corp">법인 그룹 <span class="tag">24</span></button>
+        </div>
+
+        <!-- 회원 탭 -->
+        <div class="stack" id="memberPanel">
+
+          <div class="toolbar-row">
+            <div class="row wrap gap-12">
+              <div class="input-icon">
+                <i data-lucide="search"></i>
+                <input class="input" id="searchInput" placeholder="이름 · 이메일 · 소속 검색">
+              </div>
+              <select class="select" id="branchSelect">
+                <option value="all">전체 지점</option>
+                <option value="seongsu">성수</option>
+                <option value="hongdae">홍대</option>
+                <option value="pangyo">판교</option>
+              </select>
+              <div class="segment" id="typeSeg">
+                <button class="active" data-type="all">전체</button>
+                <button data-type="personal">개인</button>
+                <button data-type="corp">법인</button>
+              </div>
+            </div>
+            <div class="chips" id="statusChips">
+              <button class="chip active" data-status="all">전체</button>
+              <button class="chip" data-status="normal">정상</button>
+              <button class="chip" data-status="restricted">이용 제한 4</button>
+              <button class="chip" data-status="pending">승인 대기 2</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <div class="table-scroll">
+              <table class="table" id="memberTable">
+                <thead>
+                  <tr>
+                    <th>회원</th>
+                    <th>소속</th>
+                    <th>주 지점</th>
+                    <th>가입일</th>
+                    <th>최근 이용</th>
+                    <th>누적 이용 시간</th>
+                    <th>노쇼</th>
+                    <th>상태</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="row-link" data-id="M-0001" data-branch="seongsu" data-type="corp" data-status="normal" data-search="박서연 seoyeon.park@bridgelab.co.kr 주식회사 브릿지랩">
+                    <td><div class="row gap-8"><span class="avatar sm">박</span><div><div class="cell-strong">박서연</div><div class="cell-sub">seoyeon.park@bridgelab.co.kr</div></div></div></td>
+                    <td>주식회사 브릿지랩</td>
+                    <td>성수</td>
+                    <td>2026-03-12</td>
+                    <td>오늘</td>
+                    <td class="num">128.5h</td>
+                    <td class="num">1</td>
+                    <td><span class="badge badge-primary">정상</span></td>
+                  </tr>
+                  <tr class="row-link" data-id="M-0002" data-branch="seongsu" data-type="corp" data-status="normal" data-search="이준호 junho.lee@connectpartners.io 코넥트파트너스">
+                    <td><div class="row gap-8"><span class="avatar sm">이</span><div><div class="cell-strong">이준호</div><div class="cell-sub">junho.lee@connectpartners.io</div></div></div></td>
+                    <td>코넥트파트너스</td>
+                    <td>성수</td>
+                    <td>2025-11-02</td>
+                    <td>어제</td>
+                    <td class="num">96.0h</td>
+                    <td class="num">0</td>
+                    <td><span class="badge badge-primary">정상</span></td>
+                  </tr>
+                  <tr class="row-link" data-id="M-0003" data-branch="pangyo" data-type="corp" data-status="normal" data-search="정우진 woojin.jung@nextwave.co.kr 넥스트웨이브">
+                    <td><div class="row gap-8"><span class="avatar sm">정</span><div><div class="cell-strong">정우진</div><div class="cell-sub">woojin.jung@nextwave.co.kr</div></div></div></td>
+                    <td>넥스트웨이브</td>
+                    <td>판교</td>
+                    <td>2026-01-18</td>
+                    <td>오늘</td>
+                    <td class="num">143.0h</td>
+                    <td class="num">2</td>
+                    <td><span class="badge badge-primary">정상</span></td>
+                  </tr>
+                  <tr class="row-link" data-id="M-0004" data-branch="hongdae" data-type="personal" data-status="normal" data-search="최민아 mina.choi@gmail.com 개인">
+                    <td><div class="row gap-8"><span class="avatar sm">최</span><div><div class="cell-strong">최민아</div><div class="cell-sub">mina.choi@gmail.com</div></div></div></td>
+                    <td>개인</td>
+                    <td>홍대</td>
+                    <td>2026-05-09</td>
+                    <td>오늘</td>
+                    <td class="num">41.5h</td>
+                    <td class="num">0</td>
+                    <td><span class="badge badge-primary">정상</span></td>
+                  </tr>
+                  <tr class="row-link" data-id="M-0005" data-branch="hongdae" data-type="corp" data-status="restricted" data-search="한지민 jimin.han@studioon.kr 스튜디오 온">
+                    <td><div class="row gap-8"><span class="avatar sm">한</span><div><div class="cell-strong">한지민</div><div class="cell-sub">jimin.han@studioon.kr</div></div></div></td>
+                    <td>스튜디오 온</td>
+                    <td>홍대</td>
+                    <td>2025-09-21</td>
+                    <td>3일 전</td>
+                    <td class="num">210.0h</td>
+                    <td class="num noshow-hi">3</td>
+                    <td><span class="badge badge-noshow">이용 제한 ~10/19</span></td>
+                  </tr>
+                  <tr class="row-link" data-id="M-0006" data-branch="pangyo" data-type="personal" data-status="normal" data-search="오세훈 sehoon.oh@naver.com 개인">
+                    <td><div class="row gap-8"><span class="avatar sm">오</span><div><div class="cell-strong">오세훈</div><div class="cell-sub">sehoon.oh@naver.com</div></div></div></td>
+                    <td>개인</td>
+                    <td>판교</td>
+                    <td>2026-02-14</td>
+                    <td>어제</td>
+                    <td class="num">18.0h</td>
+                    <td class="num">1</td>
+                    <td><span class="badge badge-primary">정상</span></td>
+                  </tr>
+                  <tr class="row-link" data-id="M-0007" data-branch="seongsu" data-type="corp" data-status="normal" data-search="김도윤 doyoon.kim@bridgelab.co.kr 주식회사 브릿지랩">
+                    <td><div class="row gap-8"><span class="avatar sm">김</span><div><div class="cell-strong">김도윤</div><div class="cell-sub">doyoon.kim@bridgelab.co.kr</div></div></div></td>
+                    <td>주식회사 브릿지랩</td>
+                    <td>성수</td>
+                    <td>2026-06-30</td>
+                    <td>오늘</td>
+                    <td class="num">55.5h</td>
+                    <td class="num">0</td>
+                    <td><span class="badge badge-primary">정상</span></td>
+                  </tr>
+                  <tr class="row-link" data-id="M-0008" data-branch="hongdae" data-type="corp" data-status="normal" data-search="윤서아 seoa.yoon@growlab.co.kr 그로우랩">
+                    <td><div class="row gap-8"><span class="avatar sm">윤</span><div><div class="cell-strong">윤서아</div><div class="cell-sub">seoa.yoon@growlab.co.kr</div></div></div></td>
+                    <td>그로우랩</td>
+                    <td>홍대</td>
+                    <td>2025-12-05</td>
+                    <td>2일 전</td>
+                    <td class="num">88.0h</td>
+                    <td class="num">1</td>
+                    <td><span class="badge badge-primary">정상</span></td>
+                  </tr>
+                  <tr class="row-link" data-id="M-0009" data-branch="seongsu" data-type="corp" data-status="pending" data-search="신동혁 donghyuk.shin@connectpartners.io 코넥트파트너스">
+                    <td><div class="row gap-8"><span class="avatar sm">신</span><div><div class="cell-strong">신동혁</div><div class="cell-sub">donghyuk.shin@connectpartners.io</div></div></div></td>
+                    <td>코넥트파트너스</td>
+                    <td>성수</td>
+                    <td>2026-04-11</td>
+                    <td>5일 전</td>
+                    <td class="num">32.0h</td>
+                    <td class="num">0</td>
+                    <td><span class="badge badge-outline">소속 승인 대기</span></td>
+                  </tr>
+                  <tr class="row-link" data-id="M-0010" data-branch="pangyo" data-type="personal" data-status="normal" data-search="강수빈 subin.kang@kakao.com 개인">
+                    <td><div class="row gap-8"><span class="avatar sm">강</span><div><div class="cell-strong">강수빈</div><div class="cell-sub">subin.kang@kakao.com</div></div></div></td>
+                    <td>개인</td>
+                    <td>판교</td>
+                    <td>2025-08-19</td>
+                    <td>오늘</td>
+                    <td class="num">175.5h</td>
+                    <td class="num">2</td>
+                    <td><span class="badge badge-primary">정상</span></td>
+                  </tr>
+                  <tr class="row-link" data-id="M-0011" data-branch="pangyo" data-type="corp" data-status="normal" data-search="임재현 jaehyun.lim@nextwave.co.kr 넥스트웨이브">
+                    <td><div class="row gap-8"><span class="avatar sm">임</span><div><div class="cell-strong">임재현</div><div class="cell-sub">jaehyun.lim@nextwave.co.kr</div></div></div></td>
+                    <td>넥스트웨이브</td>
+                    <td>판교</td>
+                    <td>2026-07-02</td>
+                    <td>어제</td>
+                    <td class="num">12.0h</td>
+                    <td class="num">0</td>
+                    <td><span class="badge badge-primary">정상</span></td>
+                  </tr>
+                  <tr class="row-link" data-id="M-0012" data-branch="seongsu" data-type="personal" data-status="normal" data-search="조은서 eunseo.jo@naver.com 개인">
+                    <td><div class="row gap-8"><span class="avatar sm">조</span><div><div class="cell-strong">조은서</div><div class="cell-sub">eunseo.jo@naver.com</div></div></div></td>
+                    <td>개인</td>
+                    <td>성수</td>
+                    <td>2026-03-28</td>
+                    <td>4일 전</td>
+                    <td class="num">64.0h</td>
+                    <td class="num">1</td>
+                    <td><span class="badge badge-primary">정상</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-foot">
+              <span id="tableFootNote">12 / 312명 표시 중</span>
+              <div class="pagination" id="pagination">
+                <button class="btn btn-utility" id="prevPage" disabled><i data-lucide="chevron-left"></i></button>
+                <button class="btn btn-utility active" data-page="1">1</button>
+                <button class="btn btn-utility" data-page="2">2</button>
+                <button class="btn btn-utility" data-page="3">3</button>
+                <button class="btn btn-utility" id="nextPage"><i data-lucide="chevron-right"></i></button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 법인 그룹 탭 -->
+        <div class="stack hidden" id="corpPanel">
+          <p class="caption corp-note">카드를 클릭하면 회원 탭에서 해당 소속으로 필터링됩니다 · 소속 법인 24개 중 8개 표시</p>
+          <div class="grid cols-3">
+            <div class="card card-link" data-corp="주식회사 브릿지랩">
+              <div class="row-between"><h3 class="card-title">주식회사 브릿지랩</h3><span class="badge badge-neutral">6명</span></div>
+              <div class="kv mt-12">
+                <dt>주 지점</dt><dd>성수</dd>
+                <dt>이번 달</dt><dd>184.0h</dd>
+                <dt>노쇼 합계</dt><dd>3건</dd>
+              </div>
+            </div>
+            <div class="card card-link" data-corp="코넥트파트너스">
+              <div class="row-between"><h3 class="card-title">코넥트파트너스</h3><span class="badge badge-neutral">9명</span></div>
+              <div class="kv mt-12">
+                <dt>주 지점</dt><dd>성수</dd>
+                <dt>이번 달</dt><dd>226.5h</dd>
+                <dt>노쇼 합계</dt><dd>2건</dd>
+              </div>
+            </div>
+            <div class="card card-link" data-corp="넥스트웨이브">
+              <div class="row-between"><h3 class="card-title">넥스트웨이브</h3><span class="badge badge-neutral">11명</span></div>
+              <div class="kv mt-12">
+                <dt>주 지점</dt><dd>판교</dd>
+                <dt>이번 달</dt><dd>298.0h</dd>
+                <dt>노쇼 합계</dt><dd>4건</dd>
+              </div>
+            </div>
+            <div class="card card-link" data-corp="스튜디오 온">
+              <div class="row-between"><h3 class="card-title">스튜디오 온</h3><span class="badge badge-neutral">5명</span></div>
+              <div class="kv mt-12">
+                <dt>주 지점</dt><dd>홍대</dd>
+                <dt>이번 달</dt><dd>156.5h</dd>
+                <dt>노쇼 합계</dt><dd>5건</dd>
+              </div>
+            </div>
+            <div class="card card-link" data-corp="그로우랩">
+              <div class="row-between"><h3 class="card-title">그로우랩</h3><span class="badge badge-neutral">7명</span></div>
+              <div class="kv mt-12">
+                <dt>주 지점</dt><dd>홍대</dd>
+                <dt>이번 달</dt><dd>142.0h</dd>
+                <dt>노쇼 합계</dt><dd>1건</dd>
+              </div>
+            </div>
+            <div class="card card-link" data-corp="파인드어스">
+              <div class="row-between"><h3 class="card-title">파인드어스</h3><span class="badge badge-neutral">4명</span></div>
+              <div class="kv mt-12">
+                <dt>주 지점</dt><dd>판교</dd>
+                <dt>이번 달</dt><dd>88.0h</dd>
+                <dt>노쇼 합계</dt><dd>0건</dd>
+              </div>
+            </div>
+            <div class="card card-link" data-corp="헤이스튜디오">
+              <div class="row-between"><h3 class="card-title">헤이스튜디오</h3><span class="badge badge-neutral">3명</span></div>
+              <div class="kv mt-12">
+                <dt>주 지점</dt><dd>성수</dd>
+                <dt>이번 달</dt><dd>61.5h</dd>
+                <dt>노쇼 합계</dt><dd>1건</dd>
+              </div>
+            </div>
+            <div class="card card-link card-soft" data-corp="개인">
+              <div class="row-between"><h3 class="card-title">개인 회원</h3><span class="badge badge-neutral">118명</span></div>
+              <div class="kv mt-12">
+                <dt>주 지점</dt><dd>전 지점</dd>
+                <dt>이번 달</dt><dd>812.0h</dd>
+                <dt>노쇼 합계</dt><dd>12건</dd>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <div class="toast fixed" id="toast"></div>
+
+  <script>
+    lucide.createIcons();
+
+    const $ = (id) => document.getElementById(id);
+    const toastEl = $('toast');
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1600);
+    }
+
+    /* ── 탭 전환: 회원 / 법인 그룹 ── */
+    const memberPanel = $('memberPanel');
+    const corpPanel = $('corpPanel');
+    document.querySelectorAll('#mainTabs .tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const isMembers = tab.dataset.tab === 'members';
+        memberPanel.classList.toggle('hidden', !isMembers);
+        corpPanel.classList.toggle('hidden', isMembers);
+      });
+    });
+
+    /* ── 회원 탭: 검색·지점·소속유형·상태 필터 ── */
+    const rows = Array.from(document.querySelectorAll('#memberTable tbody tr'));
+    const searchInput = $('searchInput');
+    const branchSelect = $('branchSelect');
+    const footNote = $('tableFootNote');
+    let currentType = 'all';
+    let currentStatus = 'all';
+
+    function applyFilters() {
+      const q = searchInput.value.trim().toLowerCase();
+      const branch = branchSelect.value;
+      let visible = 0;
+      rows.forEach(tr => {
+        const okQ = !q || tr.dataset.search.includes(q);
+        const okBranch = branch === 'all' || tr.dataset.branch === branch;
+        const okType = currentType === 'all' || tr.dataset.type === currentType;
+        const okStatus = currentStatus === 'all' || tr.dataset.status === currentStatus;
+        const show = okQ && okBranch && okType && okStatus;
+        tr.classList.toggle('hidden', !show);
+        if (show) visible++;
+      });
+      footNote.textContent = `${visible} / 312명 표시 중`;
+    }
+
+    searchInput.addEventListener('input', applyFilters);
+    branchSelect.addEventListener('change', applyFilters);
+
+    document.querySelectorAll('#typeSeg button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#typeSeg button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentType = btn.dataset.type;
+        applyFilters();
+      });
+    });
+
+    document.querySelectorAll('#statusChips .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#statusChips .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        currentStatus = chip.dataset.status;
+        applyFilters();
+      });
+    });
+
+    /* ── 행 클릭 → 회원 상세(P18) ── */
+    rows.forEach(tr => {
+      tr.addEventListener('click', () => { location.href = `member-detail.html?id=${tr.dataset.id}`; });
+    });
+
+    /* ── 법인 카드 클릭 → 회원 탭으로 전환 + 검색어 채워 필터 ── */
+    document.querySelectorAll('#corpPanel .card-link').forEach(card => {
+      card.addEventListener('click', () => {
+        const name = card.dataset.corp;
+        document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active'));
+        document.querySelector('#mainTabs .tab[data-tab="members"]').classList.add('active');
+        memberPanel.classList.remove('hidden');
+        corpPanel.classList.add('hidden');
+
+        searchInput.value = name;
+        branchSelect.value = 'all';
+        currentType = 'all';
+        currentStatus = 'all';
+        document.querySelectorAll('#typeSeg button').forEach(b => b.classList.toggle('active', b.dataset.type === 'all'));
+        document.querySelectorAll('#statusChips .chip').forEach(c => c.classList.toggle('active', c.dataset.status === 'all'));
+        applyFilters();
+        searchInput.focus();
+        toast(`'${name}' 소속으로 필터링했습니다`);
+      });
+    });
+
+    /* ── 페이지네이션 (데모: 상태 토글) ── */
+    document.querySelectorAll('#pagination button[data-page]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#pagination button[data-page]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        toast(`${btn.dataset.page}페이지로 이동`);
+      });
+    });
+    $('nextPage').addEventListener('click', () => toast('다음 페이지로 이동'));
+
+    /* ── 내보내기 ── */
+    $('exportBtn').addEventListener('click', () => toast('회원 목록을 CSV로 내보냈습니다'));
+
+    applyFilters();
+  </script>
+</body>
+</html>

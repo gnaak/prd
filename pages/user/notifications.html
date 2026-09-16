@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P11 알림 — 모두라운지 예약</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 알림 고유 스타일 (프레임·헤더·탭바는 common.css 클래스만 사용) ── */
+    .filter-bar { padding: 12px 16px; border-bottom: 1px solid var(--hairline); }
+
+    .notif-group.hidden { display: none; }
+    .notif-date-head {
+      padding: 14px 16px 6px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.125px;
+      color: var(--ink-faint);
+    }
+
+    .notif-item { align-items: flex-start; }
+    .notif-item .icon-tile { margin-top: 1px; }
+    .notif-item.hidden { display: none; }
+    .notif-title { font-size: 14px; font-weight: 600; letter-spacing: -0.1px; color: var(--ink); }
+    .notif-body { margin: 2px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-muted); }
+    .notif-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; margin-top: 2px; }
+    .notif-time { font-size: 11px; color: var(--ink-faint); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+    .empty-filter { display: none; }
+    .empty-filter.show { display: flex; }
+  </style>
+</head>
+<body>
+  <div class="mobile-stage">
+    <div class="mobile-frame">
+      <div class="m-screen">
+
+        <!-- 상태바 -->
+        <div class="m-status">
+          <span>9:41</span>
+          <span class="m-status-icons">
+            <i data-lucide="signal"></i>
+            <i data-lucide="wifi"></i>
+            <i data-lucide="battery-full"></i>
+          </span>
+        </div>
+
+        <!-- 헤더 -->
+        <header class="m-header">
+          <span class="m-title">알림</span>
+          <div class="m-header-actions">
+            <button class="btn btn-utility" id="markAllBtn"><i data-lucide="check-check"></i>모두 읽음</button>
+          </div>
+        </header>
+
+        <!-- 본문 (flush — 리스트가 꽉 차게, 구분은 hairline) -->
+        <div class="m-content flush">
+
+          <!-- 필터 칩 -->
+          <div class="filter-bar">
+            <div class="chips" id="filterChips">
+              <button class="chip active" data-filter="all">전체</button>
+              <button class="chip" data-filter="reservation">예약</button>
+              <button class="chip" data-filter="notice">공지</button>
+            </div>
+          </div>
+
+          <!-- 오늘 -->
+          <div class="notif-group" data-group="today">
+            <div class="notif-date-head">오늘</div>
+            <div class="list">
+              <button class="list-item link notif-item unread" data-type="reservation">
+                <span class="icon-tile"><i data-lucide="alarm-clock"></i></span>
+                <div class="grow">
+                  <div class="notif-title">성수 A 회의실 예약이 10분 후 시작돼요</div>
+                  <p class="notif-body">14:00 – 15:00 · 3층 A구역 · 예약번호 R-261014-0031</p>
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">13:50</span>
+                  <span class="unread-dot"></span>
+                </div>
+              </button>
+              <button class="list-item link notif-item unread" data-type="reservation">
+                <span class="icon-tile"><i data-lucide="calendar-check"></i></span>
+                <div class="grow">
+                  <div class="notif-title">자율좌석 B-17이 배정됐어요</div>
+                  <p class="notif-body">성수 2층 B구역 · 22:00까지 이용 가능</p>
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">09:12</span>
+                  <span class="unread-dot"></span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- 어제 -->
+          <div class="notif-group" data-group="yesterday">
+            <div class="notif-date-head">어제</div>
+            <div class="list">
+              <button class="list-item link notif-item" data-type="reservation">
+                <span class="icon-tile"><i data-lucide="calendar-check"></i></span>
+                <div class="grow">
+                  <div class="notif-title">10/16(금) 세미나룸 예약이 확정됐어요</div>
+                  <p class="notif-body">10:00 – 12:00 · 성수 세미나룸(12인) · 예약번호 R-261016-0022</p>
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">18:24</span>
+                </div>
+              </button>
+              <button class="list-item link notif-item" data-type="notice"
+                data-title="10/18(토) 성수 3층 회의실 정기 점검 안내"
+                data-scope="성수" data-period="10.11 – 10.18"
+                data-full="10월 18일(토) 09:00–13:00 성수 3층 회의실 전체가 정기 점검으로 비활성화됩니다. 해당 시간대에 잡힌 예약은 운영팀이 개별 연락 후 조정해 드립니다.">
+                <span class="icon-tile"><i data-lucide="megaphone"></i></span>
+                <div class="grow">
+                  <div class="notif-title">10/18(토) 성수 3층 회의실 정기 점검 안내</div>
+                  <p class="notif-body">09:00–13:00 성수 3층 회의실 전체가 점검으로 비활성화됩니다</p>
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">10:05</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- 이번 주 -->
+          <div class="notif-group" data-group="week">
+            <div class="notif-date-head">이번 주</div>
+            <div class="list">
+              <button class="list-item link notif-item" data-type="reservation">
+                <span class="icon-tile"><i data-lucide="calendar-check"></i></span>
+                <div class="grow">
+                  <div class="notif-title">10/21 예약이 확정됐어요</div>
+                  <p class="notif-body">15:00 – 16:30 · 성수 B 회의실(8인) · 예약번호 R-261021-0009</p>
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">10.12</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- 이전 -->
+          <div class="notif-group" data-group="past">
+            <div class="notif-date-head">이전</div>
+            <div class="list">
+              <button class="list-item link notif-item" data-type="notice"
+                data-title="홍대 지점 주말 운영시간 변경 안내"
+                data-scope="홍대" data-period="10.09 – 10.31"
+                data-full="10월부터 홍대 지점 주말 운영시간이 10:00–18:00로 변경되었습니다. 기존 예약 중 변경 시간에 걸치는 건은 개별 안내드렸습니다.">
+                <span class="icon-tile"><i data-lucide="megaphone"></i></span>
+                <div class="grow">
+                  <div class="notif-title">홍대 지점 주말 운영시간 변경 안내</div>
+                  <p class="notif-body">10월부터 주말 운영시간이 10:00–18:00로 변경되었습니다</p>
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">10.09</span>
+                </div>
+              </button>
+              <button class="list-item link notif-item" data-type="notice"
+                data-title="10월 신규 입주 법인 환영 · 커피 쿠폰 이벤트"
+                data-scope="전체" data-period="10.01 – 10.31"
+                data-full="10월 신규 입주한 법인 회원을 환영합니다. 라운지 프론트에서 커피 쿠폰 1매를 받아가세요. 10월 31일까지 사용 가능합니다.">
+                <span class="icon-tile"><i data-lucide="megaphone"></i></span>
+                <div class="grow">
+                  <div class="notif-title">10월 신규 입주 법인 환영 · 커피 쿠폰 이벤트</div>
+                  <p class="notif-body">라운지 프론트에서 커피 쿠폰 1매를 받아가세요 · 10.31까지</p>
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">10.01</span>
+                </div>
+              </button>
+              <button class="list-item link notif-item" data-type="reservation">
+                <span class="icon-tile"><i data-lucide="user-x"></i></span>
+                <div class="grow">
+                  <div class="notif-title">9/29 09:00 예약이 노쇼 처리됐어요</div>
+                  <p class="notif-body">체크인 기록이 없어 자동으로 노쇼 처리되었습니다 · 누적 노쇼 1회</p>
+                </div>
+                <div class="notif-meta">
+                  <span class="notif-time">9.29</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div class="empty empty-filter" id="emptyFilter">
+            <i data-lucide="bell-off"></i>
+            <span>해당하는 알림이 없어요</span>
+          </div>
+
+        </div>
+
+        <!-- 하단 탭바 (5개, 전 사용자 페이지 공통) -->
+        <nav class="m-tabbar">
+          <a class="m-tab" href="home.html"><span class="tab-icon"><i data-lucide="house"></i></span>홈</a>
+          <a class="m-tab" href="spaces.html"><span class="tab-icon"><i data-lucide="door-open"></i></span>공간</a>
+          <a class="m-tab" href="my-reservations.html"><span class="tab-icon"><i data-lucide="calendar-check"></i></span>내 예약</a>
+          <a class="m-tab active" href="notifications.html"><span class="tab-icon"><i data-lucide="bell"></i><span class="tab-badge" id="tabBadge">2</span></span>알림</a>
+          <a class="m-tab" href="mypage.html"><span class="tab-icon"><i data-lucide="user"></i></span>마이</a>
+        </nav>
+
+        <!-- 홈 인디케이터 -->
+        <div class="m-home"></div>
+
+        <!-- 공지 전문 바텀시트 -->
+        <div class="sheet-backdrop" id="backdrop"></div>
+        <div class="sheet" id="noticeSheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <h3>공지</h3>
+            <button class="icon-btn sm" data-close aria-label="닫기"><i data-lucide="x"></i></button>
+          </div>
+          <div class="sheet-body">
+            <span class="badge badge-neutral" id="noticeSheetScope">성수</span>
+            <h4 class="mt-8" id="noticeSheetTitle"></h4>
+            <p class="caption mt-4" id="noticeSheetMeta"></p>
+            <p class="text-sm secondary mt-12" id="noticeSheetBody" style="line-height:1.6;"></p>
+          </div>
+          <div class="sheet-foot">
+            <button class="btn btn-outline btn-block" data-close>닫기</button>
+          </div>
+        </div>
+
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    const $ = (id) => document.getElementById(id);
+    const backdrop = $('backdrop');
+    const toastEl = $('toast');
+    const markAllBtn = $('markAllBtn');
+    const tabBadge = $('tabBadge');
+    let toastTimer;
+
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    /* 바텀시트 열기/닫기 */
+    function openSheet(id) { backdrop.classList.add('open'); $(id).classList.add('open'); }
+    function closeSheets() {
+      backdrop.classList.remove('open');
+      document.querySelectorAll('.sheet.open').forEach(s => s.classList.remove('open'));
+    }
+    backdrop.addEventListener('click', closeSheets);
+    document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
+
+    /* 읽음 처리 (F20) */
+    let unreadCount = document.querySelectorAll('.notif-item.unread').length;
+
+    function updateUnreadUI() {
+      tabBadge.textContent = unreadCount > 0 ? String(unreadCount) : '';
+      if (unreadCount === 0) {
+        markAllBtn.disabled = true;
+        markAllBtn.innerHTML = '<i data-lucide="check"></i>모두 읽음 완료';
+        lucide.createIcons();
+      }
+    }
+
+    function markRead(item) {
+      if (!item.classList.contains('unread')) return;
+      item.classList.remove('unread');
+      const dot = item.querySelector('.unread-dot');
+      if (dot) dot.remove();
+      unreadCount = Math.max(0, unreadCount - 1);
+      updateUnreadUI();
+    }
+
+    markAllBtn.addEventListener('click', () => {
+      if (markAllBtn.disabled) return;
+      document.querySelectorAll('.notif-item.unread').forEach(markRead);
+      toast('모든 알림을 읽음 처리했어요');
+    });
+
+    /* 알림 탭: 읽음 처리 후 예약 상세로 이동 / 공지는 전문 바텀시트 */
+    document.querySelectorAll('.notif-item').forEach((item) => {
+      item.addEventListener('click', () => {
+        markRead(item);
+        if (item.dataset.type === 'notice') {
+          $('noticeSheetScope').textContent = item.dataset.scope;
+          $('noticeSheetTitle').textContent = item.dataset.title;
+          $('noticeSheetMeta').textContent = `노출 기간 ${item.dataset.period} · 모두라운지 운영팀`;
+          $('noticeSheetBody').textContent = item.dataset.full;
+          openSheet('noticeSheet');
+        } else {
+          location.href = 'reservation-detail.html';
+        }
+      });
+    });
+
+    /* 필터 칩: 전체 / 예약 / 공지 */
+    const filterChips = document.querySelectorAll('#filterChips .chip');
+    filterChips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        filterChips.forEach(c => c.classList.toggle('active', c === chip));
+        const key = chip.dataset.filter;
+        document.querySelectorAll('.notif-item').forEach((item) => {
+          item.classList.toggle('hidden', !(key === 'all' || item.dataset.type === key));
+        });
+        let anyVisible = false;
+        document.querySelectorAll('.notif-group').forEach((group) => {
+          const visible = group.querySelectorAll('.notif-item:not(.hidden)').length > 0;
+          group.classList.toggle('hidden', !visible);
+          if (visible) anyVisible = true;
+        });
+        $('emptyFilter').classList.toggle('show', !anyVisible);
+      });
+    });
+
+    /* 초기화 */
+    updateUnreadUI();
+  </script>
+</body>
+</html>

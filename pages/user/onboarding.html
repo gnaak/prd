@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P3 최초 프로필 등록 — 모두라운지 예약</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 온보딩 고유 스타일 (프레임·헤더는 common.css 클래스만 사용) ── */
+    .step-indicator { display: flex; gap: 6px; margin-bottom: 20px; }
+    .step-seg { flex: 1; height: 3px; background: var(--hairline-strong); border-radius: var(--r-full); transition: background-color .15s ease; }
+    .step-seg.on { background: var(--ink); }
+    .step-label { font-size: 12px; font-weight: 600; color: var(--ink-faint); margin-bottom: 6px; }
+
+    .step-panel { display: none; }
+    .step-panel.active { display: block; }
+
+    .autocomplete-wrap { position: relative; }
+    .autocomplete-list {
+      position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+      background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-md);
+      box-shadow: var(--shadow-1); overflow: hidden; z-index: 5; display: none;
+    }
+    .autocomplete-list.show { display: block; }
+    .autocomplete-item {
+      display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+      font-size: 13px; color: var(--ink-secondary); cursor: pointer;
+    }
+    .autocomplete-item:hover { background: var(--canvas); }
+    .autocomplete-item + .autocomplete-item { border-top: 1px solid var(--hairline); }
+    .autocomplete-item .lucide { width: 14px; height: 14px; color: var(--ink-faint); }
+
+    .agree-all {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px; background: var(--canvas); border-radius: var(--r-md);
+      margin-bottom: 4px;
+    }
+    .agree-all .check { font-weight: 600; }
+    .agree-list .list-item { padding: 12px 4px; }
+    .agree-list .list-item + .list-item { border-top: 1px solid var(--hairline); }
+  </style>
+</head>
+<body>
+  <div class="mobile-stage">
+    <div class="mobile-frame">
+      <div class="m-screen">
+
+        <!-- 상태바 -->
+        <div class="m-status">
+          <span>9:41</span>
+          <span class="m-status-icons">
+            <i data-lucide="signal"></i>
+            <i data-lucide="wifi"></i>
+            <i data-lucide="battery-full"></i>
+          </span>
+        </div>
+
+        <!-- 헤더: 좌 뒤로가기 / 타이틀 -->
+        <header class="m-header">
+          <button class="icon-btn" id="backBtn" aria-label="뒤로가기">
+            <i data-lucide="arrow-left"></i>
+          </button>
+          <span class="m-title">프로필 등록</span>
+          <span class="m-header-spacer"></span>
+        </header>
+
+        <!-- 본문 -->
+        <div class="m-content">
+
+          <!-- 스텝 인디케이터 -->
+          <div class="step-label" id="stepLabel">STEP 1/2</div>
+          <div class="step-indicator">
+            <div class="step-seg on" id="seg1"></div>
+            <div class="step-seg" id="seg2"></div>
+          </div>
+
+          <!-- 스텝 1: 기본 정보 -->
+          <div class="step-panel active" id="step1">
+            <h1 class="mb-4">기본 정보를 입력해주세요</h1>
+            <p class="caption mb-24">모두라운지 예약 이용을 위해 프로필을 등록합니다</p>
+
+            <div class="stack">
+              <div class="field">
+                <label for="nameInput">이름</label>
+                <input class="input" id="nameInput" type="text" placeholder="이름을 입력하세요" value="박서연">
+              </div>
+              <div class="field">
+                <label for="phoneInput">연락처</label>
+                <input class="input" id="phoneInput" type="tel" placeholder="010-0000-0000" value="010-4821-7732">
+              </div>
+              <div class="field">
+                <label>소속 유형</label>
+                <div class="segment block" id="typeSegment">
+                  <button type="button" class="type-opt" data-type="personal">개인</button>
+                  <button type="button" class="type-opt active" data-type="corp">법인</button>
+                </div>
+              </div>
+              <div class="field" id="corpField">
+                <label for="corpInput">법인명</label>
+                <div class="autocomplete-wrap">
+                  <div class="input-icon">
+                    <i data-lucide="search"></i>
+                    <input class="input" id="corpInput" type="text" placeholder="회사명을 입력하세요" autocomplete="off" value="주식회사 브릿지랩">
+                  </div>
+                  <div class="autocomplete-list" id="corpSuggest"></div>
+                </div>
+                <span class="hint">입력하면 등록된 법인명을 제안해 드려요</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 스텝 2: 약관 동의 -->
+          <div class="step-panel" id="step2">
+            <h1 class="mb-4">약관에 동의해주세요</h1>
+            <p class="caption mb-24">서비스 이용을 위해 아래 약관에 동의가 필요합니다</p>
+
+            <div class="agree-all">
+              <label class="check">
+                <input type="checkbox" id="agreeAll">
+                전체 동의
+              </label>
+            </div>
+
+            <div class="list agree-list">
+              <div class="list-item">
+                <label class="check grow">
+                  <input type="checkbox" class="agree-item" id="agreeTerms" data-required="1">
+                  이용약관 동의 <span class="caption">(필수)</span>
+                </label>
+                <a class="link text-sm" id="viewTerms">보기</a>
+              </div>
+              <div class="list-item">
+                <label class="check grow">
+                  <input type="checkbox" class="agree-item" id="agreePrivacy" data-required="1">
+                  개인정보 처리방침 동의 <span class="caption">(필수)</span>
+                </label>
+                <a class="link text-sm" id="viewPrivacy">보기</a>
+              </div>
+              <div class="list-item">
+                <label class="check grow">
+                  <input type="checkbox" class="agree-item" id="agreeMarketing">
+                  마케팅 정보 수신 동의 <span class="caption">(선택)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 하단 고정 CTA -->
+        <div class="m-footer">
+          <button class="btn btn-primary btn-block btn-lg" id="nextBtn">다음</button>
+          <button class="btn btn-primary btn-block btn-lg hidden" id="submitBtn" disabled>이용약관·개인정보 처리방침에 동의해주세요</button>
+        </div>
+
+        <!-- 홈 인디케이터 -->
+        <div class="m-home"></div>
+
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    const $ = (id) => document.getElementById(id);
+    const toastEl = $('toast');
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    /* ── 소속 유형 세그먼트 ── */
+    let orgType = 'corp';
+    const corpField = $('corpField');
+    document.querySelectorAll('.type-opt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        orgType = btn.dataset.type;
+        document.querySelectorAll('.type-opt').forEach(b => b.classList.toggle('active', b === btn));
+        corpField.classList.toggle('hidden', orgType !== 'corp');
+        if (orgType !== 'corp') $('corpSuggest').classList.remove('show');
+      });
+    });
+
+    /* ── 법인명 자동완성 ── */
+    const CORP_SUGGESTIONS = ['주식회사 브릿지랩', '브릿지랩 디자인', '브릿지랩 컨설팅'];
+    const corpInput = $('corpInput');
+    const corpSuggest = $('corpSuggest');
+    function renderSuggest() {
+      const q = corpInput.value.trim();
+      if (!q) { corpSuggest.classList.remove('show'); return; }
+      const matches = CORP_SUGGESTIONS.filter(name => name.includes(q));
+      if (!matches.length) { corpSuggest.classList.remove('show'); return; }
+      corpSuggest.innerHTML = matches.map(name =>
+        `<div class="autocomplete-item" data-name="${name}"><i data-lucide="building-2"></i>${name}</div>`
+      ).join('');
+      lucide.createIcons();
+      corpSuggest.querySelectorAll('.autocomplete-item').forEach(item => {
+        item.addEventListener('click', () => {
+          corpInput.value = item.dataset.name;
+          corpSuggest.classList.remove('show');
+        });
+      });
+      corpSuggest.classList.add('show');
+    }
+    corpInput.addEventListener('input', renderSuggest);
+    corpInput.addEventListener('focus', renderSuggest);
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.autocomplete-wrap')) corpSuggest.classList.remove('show');
+    });
+
+    /* ── 스텝 전환 ── */
+    let step = 1;
+    const seg1 = $('seg1'), seg2 = $('seg2'), stepLabel = $('stepLabel');
+    const step1 = $('step1'), step2 = $('step2');
+    const nextBtn = $('nextBtn'), submitBtn = $('submitBtn');
+
+    function goStep(n) {
+      step = n;
+      step1.classList.toggle('active', n === 1);
+      step2.classList.toggle('active', n === 2);
+      seg1.classList.toggle('on', true);
+      seg2.classList.toggle('on', n === 2);
+      stepLabel.textContent = n === 1 ? 'STEP 1/2' : 'STEP 2/2';
+      nextBtn.classList.toggle('hidden', n !== 1);
+      submitBtn.classList.toggle('hidden', n !== 2);
+      $('backBtn').setAttribute('aria-label', n === 1 ? '뒤로가기' : '이전 단계');
+    }
+
+    nextBtn.addEventListener('click', () => {
+      const name = $('nameInput').value.trim();
+      const phone = $('phoneInput').value.trim();
+      if (!name) { toast('이름을 입력해주세요'); $('nameInput').focus(); return; }
+      if (!phone) { toast('연락처를 입력해주세요'); $('phoneInput').focus(); return; }
+      if (orgType === 'corp' && !corpInput.value.trim()) { toast('법인명을 입력해주세요'); corpInput.focus(); return; }
+      goStep(2);
+    });
+
+    $('backBtn').addEventListener('click', () => {
+      if (step === 2) { goStep(1); return; }
+      location.href = 'login.html';
+    });
+
+    /* ── 약관 동의 ── */
+    const agreeAll = $('agreeAll');
+    const agreeItems = Array.from(document.querySelectorAll('.agree-item'));
+    const requiredItems = agreeItems.filter(el => el.dataset.required);
+
+    function refreshSubmit() {
+      const allRequiredChecked = requiredItems.every(el => el.checked);
+      submitBtn.disabled = !allRequiredChecked;
+      submitBtn.textContent = allRequiredChecked ? '시작하기' : '이용약관·개인정보 처리방침에 동의해주세요';
+    }
+    agreeAll.addEventListener('change', () => {
+      agreeItems.forEach(el => { el.checked = agreeAll.checked; });
+      refreshSubmit();
+    });
+    agreeItems.forEach(el => {
+      el.addEventListener('change', () => {
+        agreeAll.checked = agreeItems.every(i => i.checked);
+        refreshSubmit();
+      });
+    });
+    $('viewTerms').addEventListener('click', (e) => { e.preventDefault(); toast('이용약관 전문을 표시합니다'); });
+    $('viewPrivacy').addEventListener('click', (e) => { e.preventDefault(); toast('개인정보 처리방침 전문을 표시합니다'); });
+
+    submitBtn.addEventListener('click', () => {
+      if (submitBtn.disabled) return;
+      location.href = 'home.html';
+    });
+
+    /* 초기화 */
+    refreshSubmit();
+  </script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P1 스플래시 — 모두라운지 예약</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 스플래시 고유 스타일 (프레임·상태바·홈 인디케이터는 common.css 클래스만 사용) ── */
+    .splash-body {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface);
+      padding: 24px;
+    }
+    .splash-center { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+    .splash-mark {
+      display: flex; align-items: center; justify-content: center;
+      width: 64px; height: 64px;
+      color: var(--on-primary); background: var(--ink);
+      border-radius: var(--r-lg);
+    }
+    .splash-mark .lucide { width: 32px; height: 32px; stroke-width: 1.75; }
+
+    .splash-word { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink); text-align: center; }
+    .splash-tagline { font-size: 13px; color: var(--ink-muted); text-align: center; }
+
+    .splash-loading {
+      position: absolute; left: 0; right: 0; bottom: 36px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .splash-progress { width: 120px; height: 3px; background: var(--hairline); border-radius: var(--r-full); overflow: hidden; }
+    .splash-progress > span {
+      display: block; height: 100%; width: 0%;
+      background: var(--primary); border-radius: inherit;
+      animation: splashFill 1.8s linear forwards;
+    }
+    @keyframes splashFill { from { width: 0%; } to { width: 100%; } }
+
+    .splash-loading-text { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-faint); }
+    .splash-loading-text .lucide { width: 14px; height: 14px; animation: splashSpin 1s linear infinite; }
+    @keyframes splashSpin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="mobile-stage">
+    <div class="mobile-frame">
+      <div class="m-screen">
+
+        <!-- 상태바 -->
+        <div class="m-status">
+          <span>9:41</span>
+          <span class="m-status-icons">
+            <i data-lucide="signal"></i>
+            <i data-lucide="wifi"></i>
+            <i data-lucide="battery-full"></i>
+          </span>
+        </div>
+
+        <!-- 본문: 브랜드 마크 + 워드마크 + 태그라인, 하단 로딩 -->
+        <div class="splash-body">
+          <div class="splash-center">
+            <div class="splash-mark"><i data-lucide="building-2"></i></div>
+            <div class="splash-word">모두라운지 예약</div>
+            <p class="splash-tagline">성수·홍대·판교, 회의실과 좌석을 한 곳에서</p>
+          </div>
+
+          <div class="splash-loading">
+            <div class="splash-progress"><span></span></div>
+            <div class="splash-loading-text">
+              <i data-lucide="loader-circle"></i>
+              <span>세션 확인 중…</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 홈 인디케이터 -->
+        <div class="m-home"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    /* 1.8초 후 로그인 화면으로 자동 이동 (세션 확인 전제 동작) */
+    setTimeout(() => { location.href = 'login.html'; }, 1800);
+  </script>
+</body>
+</html>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P4 홈 — 모두라운지 예약</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 홈 고유 스타일 (프레임·헤더·탭바는 common.css 클래스만 사용) ── */
+    .branch-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      height: 32px; padding: 0 8px 0 6px;
+      font-size: 15px; font-weight: 600; letter-spacing: -0.1px; color: var(--ink);
+      background: transparent; border: 0; border-radius: var(--r-md); cursor: pointer;
+    }
+    .branch-btn:hover { background: var(--canvas); }
+    .branch-btn .lucide { width: 16px; height: 16px; }
+    .branch-btn .lucide.chev { width: 14px; height: 14px; color: var(--ink-faint); }
+
+    .greeting h1 { font-size: 18px; letter-spacing: -0.3px; }
+    .inline-ico { width: 12px; height: 12px; vertical-align: -2px; margin-right: 4px; }
+
+    .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .quick {
+      display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+      padding: 14px; text-align: left; font: inherit; color: inherit; cursor: pointer;
+    }
+    .quick .q-title { font-size: 14px; font-weight: 600; letter-spacing: -0.1px; }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .summary-grid > div + div { border-left: 1px solid var(--hairline); padding-left: 12px; }
+    .summary-val { margin-top: 2px; font-size: 20px; font-weight: 700; letter-spacing: -0.4px; font-variant-numeric: tabular-nums; }
+    .summary-val small { font-size: 12px; font-weight: 500; color: var(--ink-muted); margin-left: 1px; }
+
+    .branch-option { width: 100%; text-align: left; background: none; border: 0; font: inherit; color: inherit; }
+    .branch-option .check-mark { width: 18px; height: 18px; color: var(--primary); opacity: 0; }
+    .branch-option.active .check-mark { opacity: 1; }
+  </style>
+</head>
+<body>
+  <div class="mobile-stage">
+    <div class="mobile-frame">
+      <div class="m-screen">
+
+        <!-- 상태바 -->
+        <div class="m-status">
+          <span>9:41</span>
+          <span class="m-status-icons">
+            <i data-lucide="signal"></i>
+            <i data-lucide="wifi"></i>
+            <i data-lucide="battery-full"></i>
+          </span>
+        </div>
+
+        <!-- 헤더: 좌 지점 선택 / 우 알림 -->
+        <header class="m-header">
+          <button class="branch-btn" id="branchBtn" aria-label="지점 선택">
+            <i data-lucide="map-pin"></i>
+            <span id="branchName">성수</span>
+            <i data-lucide="chevron-down" class="chev"></i>
+          </button>
+          <span class="grow"></span>
+          <div class="m-header-actions">
+            <button class="icon-btn" onclick="location.href='notifications.html'" aria-label="알림">
+              <i data-lucide="bell"></i>
+              <span class="count-badge">2</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- 본문 (유일한 스크롤 영역, 회색 캔버스는 여기에 직접) -->
+        <div class="m-content canvas">
+
+          <div class="greeting mb-12">
+            <h1>안녕하세요, 박서연 님</h1>
+            <p class="caption mt-4">주식회사 브릿지랩 · 10월 14일 (수)</p>
+          </div>
+
+          <!-- 지점 선택 칩 (F9) -->
+          <div class="chips mb-8" id="branchChips">
+            <button class="chip active" data-branch="seongsu">성수</button>
+            <button class="chip" data-branch="hongdae">홍대</button>
+            <button class="chip" data-branch="pangyo">판교</button>
+          </div>
+          <p class="caption mb-16" id="branchInfo">
+            <i data-lucide="clock" class="inline-ico"></i><span id="branchHours">평일 08:00–22:00 · 주말 10:00–18:00</span>
+            <br><i data-lucide="map-pin" class="inline-ico"></i><span id="branchAddr">서울 성동구 연무장길 12</span>
+          </p>
+
+          <!-- 공지 배너 (F30) -->
+          <div class="banner mb-16" id="noticeBanner">
+            <i data-lucide="megaphone"></i>
+            <span class="banner-text" id="noticeText"></span>
+            <span class="banner-counter" id="noticeCounter">1/3</span>
+            <button class="icon-btn sm" id="noticeNext" aria-label="다음 공지"><i data-lucide="chevron-right"></i></button>
+          </div>
+
+          <!-- 오늘 내 예약 (F8·F19) -->
+          <div class="section-head">
+            <h2 class="section-title">오늘 내 예약 <small>2</small></h2>
+            <a class="link text-sm" href="my-reservations.html">전체 보기</a>
+          </div>
+          <div class="stack mb-16">
+            <div class="card">
+              <div class="row-between mb-8">
+                <span class="badge badge-upcoming">예정</span>
+                <span class="text-sm tabular secondary">14:00 – 15:00</span>
+              </div>
+              <h3>성수 A 회의실(4인)</h3>
+              <p class="text-sm muted mt-4">3층 A구역 · 주간 회의 · 3명</p>
+              <p class="caption mt-4"><i data-lucide="clock" class="inline-ico"></i>13:50부터 체크인 가능 · 예약번호 R-261014-0031</p>
+              <div class="row mt-12">
+                <button class="btn btn-primary grow" id="checkinBtn"><i data-lucide="scan-line"></i>체크인</button>
+                <button class="btn btn-outline" onclick="location.href='reservation-detail.html'">상세</button>
+              </div>
+            </div>
+            <div class="card card-link" onclick="location.href='reservation-detail.html?type=seat'">
+              <div class="row-between mb-8">
+                <span class="badge badge-live">진행</span>
+                <span class="text-sm tabular secondary">~ 22:00</span>
+              </div>
+              <div class="row">
+                <div class="grow">
+                  <h3>자율좌석 B-17</h3>
+                  <p class="text-sm muted mt-4">성수 2층 B구역 · 09:12 배정</p>
+                </div>
+                <i data-lucide="chevron-right" class="lucide chev faint" style="width:16px;height:16px;"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- 바로 예약 (F10 / F15 진입) -->
+          <h2 class="section-title mb-8">바로 예약</h2>
+          <div class="quick-grid mb-16">
+            <button class="card card-link quick" onclick="location.href='spaces.html'">
+              <span class="icon-tile"><i data-lucide="door-open"></i></span>
+              <div>
+                <div class="q-title">회의실 예약</div>
+                <div class="caption">14일 이내 · 30분 단위</div>
+              </div>
+            </button>
+            <button class="card card-link quick" onclick="location.href='spaces.html'">
+              <span class="icon-tile"><i data-lucide="armchair"></i></span>
+              <div>
+                <div class="q-title">자율좌석 배정</div>
+                <div class="caption">오늘 잔여 <span id="seatLeft" class="fw-600 secondary">14</span>석</div>
+              </div>
+            </button>
+          </div>
+
+          <!-- 이번 주 이용 요약 (F34 노출) -->
+          <div class="card">
+            <div class="card-head">
+              <h3 class="card-title">이번 주 이용 요약</h3>
+              <a class="link text-sm" href="mypage.html">마이페이지</a>
+            </div>
+            <div class="summary-grid">
+              <div>
+                <div class="caption">이용 시간</div>
+                <div class="summary-val">6.5<small>h</small></div>
+              </div>
+              <div>
+                <div class="caption">예약</div>
+                <div class="summary-val">3<small>건</small></div>
+              </div>
+              <div>
+                <div class="caption">노쇼</div>
+                <div class="summary-val">0<small>회</small></div>
+              </div>
+            </div>
+            <p class="caption mt-12">10.13 (월) – 10.19 (일) 기준 · 지난 달 이용 시간 21.5h</p>
+          </div>
+
+        </div>
+
+        <!-- 하단 탭바 (5개, 전 사용자 페이지 공통) -->
+        <nav class="m-tabbar">
+          <a class="m-tab active" href="home.html"><span class="tab-icon"><i data-lucide="house"></i></span>홈</a>
+          <a class="m-tab" href="spaces.html"><span class="tab-icon"><i data-lucide="door-open"></i></span>공간</a>
+          <a class="m-tab" href="my-reservations.html"><span class="tab-icon"><i data-lucide="calendar-check"></i></span>내 예약</a>
+          <a class="m-tab" href="notifications.html"><span class="tab-icon"><i data-lucide="bell"></i><span class="tab-badge">2</span></span>알림</a>
+          <a class="m-tab" href="mypage.html"><span class="tab-icon"><i data-lucide="user"></i></span>마이</a>
+        </nav>
+
+        <!-- 홈 인디케이터 -->
+        <div class="m-home"></div>
+
+        <!-- 지점 선택 바텀시트 (F9) -->
+        <div class="sheet-backdrop" id="backdrop"></div>
+        <div class="sheet" id="branchSheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <h3>지점 선택</h3>
+            <button class="icon-btn sm" data-close aria-label="닫기"><i data-lucide="x"></i></button>
+          </div>
+          <div class="sheet-body">
+            <div class="card card-flush list">
+              <button class="list-item link branch-option active" data-branch="seongsu">
+                <div class="grow">
+                  <div class="fw-600">성수</div>
+                  <div class="caption">평일 08:00–22:00 · 주말 10:00–18:00</div>
+                  <div class="caption">서울 성동구 연무장길 12</div>
+                </div>
+                <i data-lucide="check" class="check-mark"></i>
+              </button>
+              <button class="list-item link branch-option" data-branch="hongdae">
+                <div class="grow">
+                  <div class="fw-600">홍대</div>
+                  <div class="caption">평일 08:00–22:00 · 주말 10:00–18:00</div>
+                  <div class="caption">서울 마포구 와우산로29길 8</div>
+                </div>
+                <i data-lucide="check" class="check-mark"></i>
+              </button>
+              <button class="list-item link branch-option" data-branch="pangyo">
+                <div class="grow">
+                  <div class="fw-600">판교</div>
+                  <div class="caption">평일 07:30–22:00 · 주말 휴무</div>
+                  <div class="caption">경기 성남시 분당구 판교역로 235</div>
+                </div>
+                <i data-lucide="check" class="check-mark"></i>
+              </button>
+            </div>
+            <p class="caption mt-12">마지막으로 선택한 지점이 다음 접속 시에도 유지됩니다.</p>
+          </div>
+        </div>
+
+        <!-- 공지 전문 바텀시트 (F30) -->
+        <div class="sheet" id="noticeSheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-head">
+            <h3>공지</h3>
+            <button class="icon-btn sm" data-close aria-label="닫기"><i data-lucide="x"></i></button>
+          </div>
+          <div class="sheet-body">
+            <span class="badge badge-neutral" id="noticeSheetScope">전체 지점</span>
+            <h4 class="mt-8" id="noticeSheetTitle"></h4>
+            <p class="caption mt-4" id="noticeSheetMeta"></p>
+            <p class="text-sm secondary mt-12" id="noticeSheetBody" style="line-height:1.6;"></p>
+          </div>
+          <div class="sheet-foot">
+            <button class="btn btn-outline btn-block" data-close>닫기</button>
+          </div>
+        </div>
+
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    /* ── 더미 데이터 ── */
+    const BRANCHES = {
+      seongsu: { name: '성수', hours: '평일 08:00–22:00 · 주말 10:00–18:00', addr: '서울 성동구 연무장길 12', seatLeft: 14 },
+      hongdae: { name: '홍대', hours: '평일 08:00–22:00 · 주말 10:00–18:00', addr: '서울 마포구 와우산로29길 8', seatLeft: 18 },
+      pangyo:  { name: '판교', hours: '평일 07:30–22:00 · 주말 휴무',        addr: '경기 성남시 분당구 판교역로 235', seatLeft: 13 },
+    };
+    /* 정본: admin/notices.html의 '노출 중' 3건(N101·N102·N103)과 제목·기간·본문이 일치해야 한다 */
+    const NOTICES = [
+      { scope: '성수', branches: ['seongsu'], period: '10.11 – 10.18',
+        title: '10/18(토) 성수 3층 회의실 정기 점검 안내',
+        body: '10월 18일(토) 09:00–13:00 성수 3층 회의실 전체가 정기 점검으로 비활성화됩니다. 해당 시간대에 잡힌 예약은 운영팀이 개별 연락 후 조정해 드립니다.' },
+      { scope: '홍대', branches: ['hongdae'], period: '10.09 – 10.31',
+        title: '홍대 지점 주말 운영시간 변경 안내',
+        body: '10월부터 홍대 지점 주말 운영시간이 10:00–18:00로 변경되었습니다. 기존 예약 중 변경 시간에 걸치는 건은 개별 안내드렸습니다.' },
+      { scope: '전체 지점', branches: ['seongsu', 'hongdae', 'pangyo'], period: '10.01 – 10.31',
+        title: '10월 신규 입주 법인 환영 · 커피 쿠폰 이벤트',
+        body: '10월 신규 입주한 법인 회원을 환영합니다. 라운지 프론트에서 커피 쿠폰 1매를 받아가세요. 10월 31일까지 사용 가능합니다.' },
+    ];
+
+    /* ── 상태 ── */
+    let branch = 'seongsu';
+    let noticeList = [];
+    let noticeIdx = 0;
+
+    const $ = (id) => document.getElementById(id);
+    const backdrop = $('backdrop');
+    const toastEl = $('toast');
+    let toastTimer;
+
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    /* 시트 열기/닫기 */
+    function openSheet(id) { backdrop.classList.add('open'); $(id).classList.add('open'); }
+    function closeSheets() {
+      backdrop.classList.remove('open');
+      document.querySelectorAll('.sheet.open').forEach(s => s.classList.remove('open'));
+    }
+    backdrop.addEventListener('click', closeSheets);
+    document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
+    $('branchBtn').addEventListener('click', () => openSheet('branchSheet'));
+
+    /* 지점 변경 (칩 + 시트 옵션 동기화) */
+    function setBranch(key, silent) {
+      const changed = key !== branch;
+      branch = key;
+      const b = BRANCHES[key];
+      $('branchName').textContent = b.name;
+      $('branchHours').textContent = b.hours;
+      $('branchAddr').textContent = b.addr;
+      $('seatLeft').textContent = b.seatLeft;
+      document.querySelectorAll('#branchChips .chip').forEach(c => c.classList.toggle('active', c.dataset.branch === key));
+      document.querySelectorAll('.branch-option').forEach(o => o.classList.toggle('active', o.dataset.branch === key));
+      noticeList = NOTICES.filter(n => n.branches.includes(key));
+      noticeIdx = 0;
+      renderNotice();
+      if (changed && !silent) toast(`${b.name} 지점으로 변경했어요`);
+    }
+    document.querySelectorAll('#branchChips .chip').forEach(c => c.addEventListener('click', () => setBranch(c.dataset.branch)));
+    document.querySelectorAll('.branch-option').forEach(o => o.addEventListener('click', () => { setBranch(o.dataset.branch); closeSheets(); }));
+
+    /* 공지 배너: 다음 버튼 순환 + 배너 탭 시 전문 시트 */
+    function renderNotice() {
+      const n = noticeList[noticeIdx];
+      $('noticeText').textContent = n ? n.title : '노출 중인 공지가 없습니다';
+      $('noticeCounter').textContent = noticeList.length ? `${noticeIdx + 1}/${noticeList.length}` : '0/0';
+    }
+    function nextNotice() {
+      if (!noticeList.length) return;
+      noticeIdx = (noticeIdx + 1) % noticeList.length;
+      renderNotice();
+    }
+    $('noticeNext').addEventListener('click', (e) => { e.stopPropagation(); nextNotice(); resetAuto(); });
+    $('noticeBanner').addEventListener('click', () => {
+      const n = noticeList[noticeIdx];
+      if (!n) return;
+      $('noticeSheetScope').textContent = n.scope;
+      $('noticeSheetTitle').textContent = n.title;
+      $('noticeSheetMeta').textContent = `노출 기간 ${n.period} · 모두라운지 운영팀`;
+      $('noticeSheetBody').textContent = n.body;
+      openSheet('noticeSheet');
+    });
+    let autoTimer = setInterval(nextNotice, 5000);
+    function resetAuto() { clearInterval(autoTimer); autoTimer = setInterval(nextNotice, 5000); }
+
+    /* 체크인 버튼 → 예약 상세(P10)에서 체크인 처리 */
+    $('checkinBtn').addEventListener('click', () => { location.href = 'reservation-detail.html'; });
+
+    /* 초기화 */
+    setBranch('seongsu', true);
+  </script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P9 내 예약 — 모두라운지 예약</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 내 예약 고유 스타일 (프레임·헤더·탭바는 common.css 클래스만 사용) ── */
+    .inline-ico { width: 12px; height: 12px; vertical-align: -2px; margin-right: 4px; }
+
+    .summary-strip {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-radius: var(--r-md);
+      font-size: 13px;
+      color: var(--ink-secondary);
+    }
+    .summary-strip .lucide { width: 16px; height: 16px; color: var(--ink-muted); flex: none; margin-top: 2px; }
+
+    .date-group {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.125px;
+      color: var(--ink-muted);
+      margin: 16px 0 8px;
+    }
+    .date-group:first-child { margin-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="mobile-stage">
+    <div class="mobile-frame">
+      <div class="m-screen">
+
+        <!-- 상태바 -->
+        <div class="m-status">
+          <span>9:41</span>
+          <span class="m-status-icons">
+            <i data-lucide="signal"></i>
+            <i data-lucide="wifi"></i>
+            <i data-lucide="battery-full"></i>
+          </span>
+        </div>
+
+        <!-- 헤더: 좌 타이틀 / 우 새 예약 -->
+        <header class="m-header">
+          <span class="m-title">내 예약</span>
+          <div class="m-header-actions">
+            <button class="icon-btn" onclick="location.href='spaces.html'" aria-label="새 예약">
+              <i data-lucide="plus"></i>
+            </button>
+          </div>
+        </header>
+
+        <!-- 본문 (유일한 스크롤 영역, 회색 캔버스는 여기에 직접) -->
+        <div class="m-content canvas">
+
+          <!-- 이번 달 이용 요약 (F5/F34 노출) -->
+          <div class="summary-strip mb-16">
+            <i data-lucide="bar-chart-3"></i>
+            <div class="grow">
+              <div>이번 달 <strong class="fw-600">17.5h</strong> · <strong class="fw-600">8건</strong> · 노쇼 <strong class="fw-600">0</strong></div>
+              <div class="text-sm muted mt-4">회의실 9.5h · 자율좌석 8h</div>
+            </div>
+          </div>
+
+          <!-- 예정 / 지난 탭 (F16) -->
+          <div class="tabs block mb-16" id="resTabs">
+            <button class="tab active" data-tab="upcoming">예정</button>
+            <button class="tab" data-tab="past">지난</button>
+          </div>
+
+          <!-- 예정 목록 -->
+          <div id="upcomingList">
+
+            <div class="date-group">오늘 · 10/14(수)</div>
+            <div class="stack">
+              <div class="card card-link" onclick="location.href='reservation-detail.html?type=seat'">
+                <div class="row-between mb-8">
+                  <span class="badge badge-live">진행</span>
+                  <span class="text-sm tabular secondary">~ 22:00</span>
+                </div>
+                <div class="row">
+                  <div class="grow">
+                    <h3>자율좌석 B-17</h3>
+                    <p class="text-sm muted mt-4">성수 2층 B구역 · 09:12 배정</p>
+                  </div>
+                  <i data-lucide="chevron-right" class="lucide chev faint" style="width:16px;height:16px;"></i>
+                </div>
+              </div>
+
+              <div class="card card-link" onclick="location.href='reservation-detail.html'">
+                <div class="row-between mb-8">
+                  <span class="badge badge-upcoming">예정</span>
+                  <span class="text-sm tabular secondary">14:00 – 15:00</span>
+                </div>
+                <h3>성수 A 회의실(4인)</h3>
+                <p class="text-sm muted mt-4">3층 A구역 · 주간 회의 · 3명</p>
+                <p class="caption mt-4"><i data-lucide="clock" class="inline-ico"></i>13:50부터 체크인 가능 · 예약번호 R-261014-0031</p>
+                <div class="row mt-12">
+                  <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); location.href='reservation-detail.html'">
+                    <i data-lucide="scan-line"></i>체크인
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="date-group">10/16(금)</div>
+            <div class="stack">
+              <div class="card card-link" onclick="location.href='reservation-detail.html'">
+                <div class="row-between mb-8">
+                  <span class="badge badge-upcoming">예정</span>
+                  <span class="text-sm tabular secondary">10:00 – 12:00</span>
+                </div>
+                <h3>성수 세미나룸(12인)</h3>
+                <p class="text-sm muted mt-4">5층 · 교육 · 10명</p>
+                <p class="caption mt-4">예약번호 R-261016-0022</p>
+              </div>
+            </div>
+
+            <div class="date-group">10/21(수)</div>
+            <div class="stack">
+              <div class="card card-link" onclick="location.href='reservation-detail.html'">
+                <div class="row-between mb-8">
+                  <span class="badge badge-upcoming">예정</span>
+                  <span class="text-sm tabular secondary">15:00 – 16:30</span>
+                </div>
+                <h3>성수 B 회의실(8인)</h3>
+                <p class="text-sm muted mt-4">3층 B구역 · 회의 · 5명</p>
+                <p class="caption mt-4">예약번호 R-261021-0009</p>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- 지난 목록 -->
+          <div id="pastList" class="hidden">
+            <div class="stack">
+
+              <div class="card card-link" onclick="location.href='reservation-detail.html'">
+                <div class="row-between mb-8">
+                  <span class="badge badge-done">완료</span>
+                  <span class="text-sm tabular secondary">10/13(화) 10:00 – 11:30</span>
+                </div>
+                <h3>성수 A 회의실(4인)</h3>
+                <p class="text-sm muted mt-4">3층 A구역 · 주간 회의 · 4명</p>
+                <p class="caption mt-4">이용 시간 1시간 30분</p>
+              </div>
+
+              <div class="card card-link" onclick="location.href='reservation-detail.html'">
+                <div class="row-between mb-8">
+                  <span class="badge badge-done">완료</span>
+                  <span class="text-sm tabular secondary">10/9(금) 13:00 – 17:00</span>
+                </div>
+                <h3>성수 세미나룸(12인)</h3>
+                <p class="text-sm muted mt-4">5층 · 교육 · 10명</p>
+                <p class="caption mt-4">이용 시간 4시간</p>
+              </div>
+
+              <div class="card card-link" onclick="location.href='reservation-detail.html'">
+                <div class="row-between mb-8">
+                  <span class="badge badge-done">완료</span>
+                  <span class="text-sm tabular secondary">10/7(수) 09:00 – 10:00</span>
+                </div>
+                <h3>성수 C 회의실(6인)</h3>
+                <p class="text-sm muted mt-4">4층 A구역 · 회의 · 5명</p>
+                <p class="caption mt-4">이용 시간 1시간</p>
+              </div>
+
+              <div class="card card-link" onclick="location.href='reservation-detail.html'">
+                <div class="row-between mb-8">
+                  <span class="badge badge-done">완료</span>
+                  <span class="text-sm tabular secondary">10/2(금) 14:00 – 17:00</span>
+                </div>
+                <h3>성수 B 회의실(8인)</h3>
+                <p class="text-sm muted mt-4">3층 B구역 · 회의 · 6명</p>
+                <p class="caption mt-4">이용 시간 3시간</p>
+              </div>
+
+              <div class="card card-link" onclick="location.href='reservation-detail.html'">
+                <div class="row-between mb-8">
+                  <span class="badge badge-cancel">취소</span>
+                  <span class="text-sm tabular secondary">10/6(화) 11:00 – 12:00</span>
+                </div>
+                <h3>홍대 A 회의실(4인)</h3>
+                <p class="text-sm muted mt-4">2층 A구역 · 면접 · 3명</p>
+                <p class="caption mt-4">취소 사유: 개인 사정으로 취소</p>
+              </div>
+
+              <div class="card card-link" onclick="location.href='reservation-detail.html'">
+                <div class="row-between mb-8">
+                  <span class="badge badge-noshow">노쇼</span>
+                  <span class="text-sm tabular secondary">9/29(화) 09:00 – 10:00</span>
+                </div>
+                <h3>성수 C 회의실(6인)</h3>
+                <p class="text-sm muted mt-4">4층 A구역 · 회의 · 4명</p>
+                <p class="caption mt-4">체크인 없음 · 자동 판정 09:15</p>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 하단 탭바 (5개, 전 사용자 페이지 공통) -->
+        <nav class="m-tabbar">
+          <a class="m-tab" href="home.html"><span class="tab-icon"><i data-lucide="house"></i></span>홈</a>
+          <a class="m-tab" href="spaces.html"><span class="tab-icon"><i data-lucide="door-open"></i></span>공간</a>
+          <a class="m-tab active" href="my-reservations.html"><span class="tab-icon"><i data-lucide="calendar-check"></i></span>내 예약</a>
+          <a class="m-tab" href="notifications.html"><span class="tab-icon"><i data-lucide="bell"></i><span class="tab-badge">2</span></span>알림</a>
+          <a class="m-tab" href="mypage.html"><span class="tab-icon"><i data-lucide="user"></i></span>마이</a>
+        </nav>
+
+        <!-- 홈 인디케이터 -->
+        <div class="m-home"></div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    /* 예정 / 지난 탭 전환 */
+    const tabs = document.querySelectorAll('#resTabs .tab');
+    const upcomingList = document.getElementById('upcomingList');
+    const pastList = document.getElementById('pastList');
+
+    tabs.forEach((t) => t.addEventListener('click', () => {
+      tabs.forEach((x) => x.classList.remove('active'));
+      t.classList.add('active');
+      const which = t.dataset.tab;
+      upcomingList.classList.toggle('hidden', which !== 'upcoming');
+      pastList.classList.toggle('hidden', which !== 'past');
+    }));
+  </script>
+</body>
+</html>

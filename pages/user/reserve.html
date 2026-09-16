@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P7 예약 시간·정보 입력 — 모두라운지 예약</title>
+  <link rel="stylesheet" href="../assets/css/common.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* ── 예약 시간·정보 입력 고유 스타일 (프레임·헤더는 common.css 클래스만 사용) ── */
+    .date-scroll { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+    .date-scroll::-webkit-scrollbar { display: none; }
+    .date-chip {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 3px; flex: none; width: 44px; height: 54px;
+      background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-md);
+      cursor: pointer; transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+    }
+    .date-chip:hover { background: var(--canvas); }
+    .date-chip .dow { font-size: 11px; font-weight: 500; color: var(--ink-faint); }
+    .date-chip .dom { font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: -0.2px; }
+    .date-chip.weekend .dow, .date-chip.weekend .dom { color: var(--ink-faint); }
+    .date-chip.active { border-color: var(--primary); background: var(--primary-tint); }
+    .date-chip.active .dow, .date-chip.active .dom { color: var(--primary); }
+
+    .slot-legend { display: flex; gap: 14px; font-size: 11px; color: var(--ink-faint); }
+    .slot-legend .dot { display: inline-flex; align-items: center; gap: 4px; }
+    .slot-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
+    .attendee-ctrl { display: flex; align-items: center; gap: 10px; }
+    .attendee-ctrl .count { width: 22px; text-align: center; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .chip-x { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 4px; padding: 0; background: none; border: 0; color: var(--ink-faint); cursor: pointer; vertical-align: -2px; }
+    .chip-x:hover { color: var(--ink); }
+    .chip-x .lucide { width: 12px; height: 12px; }
+    #emailChips { display: flex; flex-wrap: wrap; gap: 6px; }
+    #emailChips .chip { cursor: default; }
+  </style>
+</head>
+<body>
+  <div class="mobile-stage">
+    <div class="mobile-frame">
+      <div class="m-screen">
+
+        <!-- 상태바 -->
+        <div class="m-status">
+          <span>9:41</span>
+          <span class="m-status-icons">
+            <i data-lucide="signal"></i>
+            <i data-lucide="wifi"></i>
+            <i data-lucide="battery-full"></i>
+          </span>
+        </div>
+
+        <!-- 헤더: 좌 뒤로가기 / 중앙 타이틀 -->
+        <header class="m-header">
+          <button class="icon-btn" onclick="location.href='space-detail.html'" aria-label="뒤로">
+            <i data-lucide="arrow-left"></i>
+          </button>
+          <div class="m-title center">예약하기</div>
+          <span class="m-header-spacer"></span>
+        </header>
+
+        <!-- 본문 -->
+        <div class="m-content canvas">
+
+          <!-- 공간 요약 -->
+          <div class="row gap-12 mb-16">
+            <span class="icon-tile"><i data-lucide="door-open"></i></span>
+            <div class="grow">
+              <h3>성수 A 회의실(4인)</h3>
+              <p class="caption mt-4">3층 A구역 · 시간당 20 크레딧</p>
+            </div>
+          </div>
+
+          <!-- 날짜 선택 (F12) -->
+          <div class="card mb-16">
+            <div class="card-head"><h3 class="card-title">날짜 선택</h3></div>
+            <div class="date-scroll" id="dateScroll"></div>
+          </div>
+
+          <!-- 시간 선택 (F12) -->
+          <div class="card mb-16">
+            <div class="card-head">
+              <h3 class="card-title">시간 선택</h3>
+              <span class="caption">30분 단위 · 최대 4시간</span>
+            </div>
+            <div class="slot-legend mb-12">
+              <span class="dot"><i style="background:var(--primary);"></i>선택됨</span>
+              <span class="dot"><i style="background:var(--fill-soft);"></i>지난 시간 / 예약됨</span>
+            </div>
+            <div class="slots" id="slotGrid"></div>
+          </div>
+
+          <!-- 예약 정보 (F13) -->
+          <div class="card">
+            <div class="card-head"><h3 class="card-title">예약 정보</h3></div>
+
+            <div class="field mb-16">
+              <label>목적</label>
+              <div class="segment block" id="purposeSeg">
+                <button type="button" class="active" data-purpose="meeting">회의</button>
+                <button type="button" data-purpose="interview">면접</button>
+                <button type="button" data-purpose="edu">교육</button>
+                <button type="button" data-purpose="etc">기타</button>
+              </div>
+            </div>
+
+            <div class="field mb-16">
+              <label>참석 인원</label>
+              <div class="attendee-ctrl">
+                <button class="icon-btn bordered" id="decBtn" aria-label="인원 줄이기"><i data-lucide="minus"></i></button>
+                <span class="count" id="attendeeCount">3</span>
+                <button class="icon-btn bordered" id="incBtn" aria-label="인원 늘리기"><i data-lucide="plus"></i></button>
+                <span class="caption">최대 4명 (수용 인원)</span>
+              </div>
+            </div>
+
+            <div class="field mb-16">
+              <label>참석자 초대 (선택)</label>
+              <div class="row gap-8">
+                <input class="input grow" id="emailInput" type="email" placeholder="이메일 주소 입력">
+                <button class="btn btn-utility" id="addEmailBtn">추가</button>
+              </div>
+              <div id="emailChips" class="mt-8"></div>
+            </div>
+
+            <div class="field">
+              <label>메모 (선택)</label>
+              <textarea class="textarea" id="memo" placeholder="회의 안건이나 요청 사항을 적어주세요"></textarea>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 하단 고정 CTA (탭바 대신, 플로우 페이지) -->
+        <div class="m-footer">
+          <div class="fw-600 mb-8" id="summaryTime" style="font-size:14px;">10/14(수) 14:00–15:00 · 1시간 · 20 크레딧</div>
+          <button class="btn btn-primary btn-block btn-lg" id="confirmBtn">예약 확정</button>
+        </div>
+
+        <!-- 홈 인디케이터 -->
+        <div class="m-home"></div>
+
+        <div class="toast" id="toast"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    const $ = (id) => document.getElementById(id);
+    const toastEl = $('toast');
+    let toastTimer;
+    function toast(msg) {
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove('show'), 1800);
+    }
+
+    /* ── 날짜: 오늘(2026-10-14, 수) 포함 14일 ── */
+    const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+    const BASE = new Date(2026, 9, 14); // 2026-10-14
+    const DATES = [];
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(BASE);
+      d.setDate(BASE.getDate() + i);
+      const dow = d.getDay();
+      DATES.push({
+        key: `${d.getMonth() + 1}-${d.getDate()}`,
+        month: d.getMonth() + 1,
+        day: d.getDate(),
+        dowLabel: DOW[dow],
+        weekend: dow === 0 || dow === 6,
+        isToday: i === 0,
+      });
+    }
+
+    /* 날짜별 이미 예약된 슬롯 인덱스(0=08:00 ~ 27=21:30) */
+    const BOOKED_BY_DATE = {
+      '10-14': [15, 16, 17, 22, 23],   // 15:30–17:00, 19:00–20:00
+      '10-15': [10, 11, 20, 21],       // 13:00–14:00, 18:00–19:00
+      '10-16': [6, 7, 8],              // 11:00–12:30
+      '10-19': [18, 19],               // 17:00–18:00
+      '10-20': [4, 5, 24, 25],         // 10:00–11:00, 20:00–21:00
+      '10-21': [12, 13, 14],           // 14:00–15:30
+    };
+    function getBooked(key) { return BOOKED_BY_DATE[key] || []; }
+
+    let selectedDateIdx = 0;
+    let committed = { from: 12, to: 13 }; // 14:00–15:00 (오늘 초기 선택)
+    let pendingStart = null;
+
+    function slotLabel(i) {
+      const totalMin = 8 * 60 + i * 30;
+      const h = Math.floor(totalMin / 60), m = totalMin % 60;
+      return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+    }
+    function isPast(i) {
+      const d = DATES[selectedDateIdx];
+      if (!d.isToday) return false;
+      return i < 12; // 14:00 이전(08:00~13:30)은 지난 시간
+    }
+
+    function renderDates() {
+      const wrap = $('dateScroll');
+      wrap.innerHTML = '';
+      DATES.forEach((d, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'date-chip' + (i === selectedDateIdx ? ' active' : '') + (d.weekend ? ' weekend' : '');
+        btn.innerHTML = `<span class="dow">${d.isToday ? '오늘' : d.dowLabel}</span><span class="dom">${d.month}/${d.day}</span>`;
+        btn.addEventListener('click', () => selectDate(i));
+        wrap.appendChild(btn);
+      });
+    }
+
+    function selectDate(i) {
+      if (i === selectedDateIdx) return;
+      selectedDateIdx = i;
+      pendingStart = null;
+      committed = null; // 날짜를 바꾸면 시간은 다시 선택
+      renderDates();
+      renderSlots();
+      updateSummary();
+    }
+
+    function renderSlots() {
+      const wrap = $('slotGrid');
+      wrap.innerHTML = '';
+      const booked = getBooked(DATES[selectedDateIdx].key);
+      for (let i = 0; i < 28; i++) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'slot';
+        btn.textContent = slotLabel(i);
+        if (isPast(i)) btn.classList.add('past');
+        else if (booked.includes(i)) btn.classList.add('booked');
+        if (pendingStart !== null) {
+          if (i === pendingStart) btn.classList.add('selected');
+        } else if (committed && i >= committed.from && i <= committed.to) {
+          btn.classList.add('selected');
+        }
+        btn.addEventListener('click', () => handleSlotClick(i));
+        wrap.appendChild(btn);
+      }
+    }
+
+    function handleSlotClick(i) {
+      const booked = getBooked(DATES[selectedDateIdx].key);
+      if (isPast(i) || booked.includes(i)) {
+        toast('지난 시간이거나 이미 예약된 시간이에요');
+        return;
+      }
+      if (pendingStart === null) {
+        if (committed && i >= committed.from && i <= committed.to) {
+          committed = null; // 선택 해제
+          renderSlots();
+          updateSummary();
+          return;
+        }
+        pendingStart = i; // 시작 탭
+        renderSlots();
+        updateSummary();
+        return;
+      }
+      // 끝 탭
+      const from = pendingStart, to = i;
+      if (to < from) { pendingStart = to; renderSlots(); updateSummary(); return; }
+      let valid = true;
+      for (let k = from; k <= to; k++) { if (isPast(k) || booked.includes(k)) { valid = false; break; } }
+      if (to - from + 1 > 8) valid = false; // 최대 4시간(8칸)
+      if (!valid) {
+        toast(to - from + 1 > 8 ? '최대 4시간(8칸)까지 선택할 수 있어요' : '선택한 구간에 지난 시간 또는 예약된 시간이 포함돼 있어요');
+        pendingStart = null;
+        renderSlots();
+        updateSummary();
+        return;
+      }
+      committed = { from, to };
+      pendingStart = null;
+      renderSlots();
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const summaryEl = $('summaryTime');
+      const confirmBtn = $('confirmBtn');
+      if (!committed) {
+        summaryEl.textContent = '시간을 선택하세요';
+        summaryEl.classList.add('faint');
+        confirmBtn.disabled = true;
+        return;
+      }
+      summaryEl.classList.remove('faint');
+      confirmBtn.disabled = false;
+      const d = DATES[selectedDateIdx];
+      const durSlots = committed.to - committed.from + 1;
+      const durHour = durSlots * 0.5;
+      const durLabel = Number.isInteger(durHour) ? `${durHour}시간` : `${Math.floor(durHour)}시간 30분`;
+      const credit = durHour * 20;
+      const startLabel = slotLabel(committed.from);
+      const endTotalMin = 8 * 60 + (committed.to + 1) * 30;
+      const endLabel = String(Math.floor(endTotalMin / 60)).padStart(2, '0') + ':' + String(endTotalMin % 60).padStart(2, '0');
+      summaryEl.textContent = `${d.month}/${d.day}(${d.dowLabel}) ${startLabel}–${endLabel} · ${durLabel} · ${credit} 크레딧`;
+    }
+
+    /* ── 예약 목적 세그먼트 ── */
+    document.querySelectorAll('#purposeSeg button').forEach((b) => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('#purposeSeg button').forEach((x) => x.classList.remove('active'));
+        b.classList.add('active');
+      });
+    });
+
+    /* ── 참석 인원 스테퍼 ── */
+    let attendeeCount = 3;
+    const MAX_ATTENDEE = 4;
+    function renderAttendee() {
+      $('attendeeCount').textContent = attendeeCount;
+      $('decBtn').disabled = attendeeCount <= 1;
+      $('incBtn').disabled = attendeeCount >= MAX_ATTENDEE;
+    }
+    $('decBtn').addEventListener('click', () => { if (attendeeCount > 1) { attendeeCount--; renderAttendee(); } });
+    $('incBtn').addEventListener('click', () => {
+      if (attendeeCount < MAX_ATTENDEE) { attendeeCount++; renderAttendee(); }
+      else toast('회의실 수용 인원(4명)을 초과할 수 없어요');
+    });
+
+    /* ── 참석자 이메일 초대 ── */
+    let emails = ['minji.kim@bridgelab.co.kr', 'junho.lee@bridgelab.co.kr'];
+    function renderEmails() {
+      const wrap = $('emailChips');
+      wrap.innerHTML = '';
+      emails.forEach((email) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.innerHTML = `${email}<button type="button" class="chip-x" aria-label="참석자 삭제" data-email="${email}"><i data-lucide="x"></i></button>`;
+        wrap.appendChild(chip);
+      });
+      lucide.createIcons();
+      wrap.querySelectorAll('.chip-x').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          emails = emails.filter((em) => em !== btn.dataset.email);
+          renderEmails();
+        });
+      });
+    }
+    $('addEmailBtn').addEventListener('click', () => {
+      const input = $('emailInput');
+      const val = input.value.trim();
+      if (!val) return;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { toast('올바른 이메일 형식이 아니에요'); return; }
+      if (emails.includes(val)) { toast('이미 추가된 참석자예요'); return; }
+      emails.push(val);
+      input.value = '';
+      renderEmails();
+    });
+
+    /* ── 예약 확정 ── */
+    $('confirmBtn').addEventListener('click', () => {
+      if ($('confirmBtn').disabled) { toast('시간을 선택하세요'); return; }
+      location.href = 'reservation-confirm.html';
+    });
+
+    /* ── 초기화 ── */
+    renderDates();
+    renderSlots();
+    updateSummary();
+    renderAttendee();
+    renderEmails();
+  </script>
+</body>
+</html>
